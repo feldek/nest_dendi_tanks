@@ -2,7 +2,7 @@
 
 const { withMigration } = require('../utils');
 
-const TABLE_NAME = 'users';
+const TABLE_NAME = 'roles';
 const DB_SCHEMA = process.env.DB_SCHEMA;
 const target = { tableName: TABLE_NAME, schema: DB_SCHEMA };
 
@@ -17,29 +17,13 @@ module.exports = {
           unique: true,
           autoIncrement: true,
         },
-        email: {
+        value: {
           type: DataTypes.STRING,
           unique: true,
           allowNull: false,
         },
-        password: {
+        description: {
           type: DataTypes.STRING,
-          allowNull: false,
-        },
-        banned: {
-          type: DataTypes.BOOLEAN,
-          defaultValue: false,
-        },
-        banReason: {
-          type: DataTypes.STRING,
-        },
-        createdAt: {
-          allowNull: false,
-          type: DataTypes.DATE,
-        },
-        updatedAt: {
-          allowNull: false,
-          type: DataTypes.DATE,
         },
       },
       { transaction },
