@@ -1,6 +1,13 @@
 import { RoleEntity } from './roles.model';
-import { UserEntity } from './../users/users.model';
-import { Column, DataType, ForeignKey, Model, Table } from 'sequelize-typescript';
+import { UserEntity } from './users.model';
+import {
+  BelongsTo,
+  Column,
+  DataType,
+  ForeignKey,
+  Model,
+  Table,
+} from 'sequelize-typescript';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Table({ tableName: 'user_roles', createdAt: false, updatedAt: false })
@@ -20,4 +27,7 @@ export class UserRolesEntity extends Model<UserRolesEntity> {
     primaryKey: true,
   })
   roleId: number;
+
+  @BelongsTo(() => UserEntity)
+  user: UserEntity;
 }

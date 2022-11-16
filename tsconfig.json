@@ -1,21 +1,31 @@
 {
-  "compilerOptions": {
+    "compilerOptions": {
+    "target": "es6",
     "module": "commonjs",
+    "moduleResolution": "node",
     "declaration": true,
     "removeComments": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "importHelpers": true,
+    "esModuleInterop": true,
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "es2017",
+    "experimentalDecorators": true,    
+    "allowSyntheticDefaultImports": true,    
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "@models/*": ["src/models/*",]
+  },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
+    "types": ["node", "jest"],
+    "noFallthroughCasesInSwitch": false,
+    "lib": ["ES6", "DOM"]
   }
 }

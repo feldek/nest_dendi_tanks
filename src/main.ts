@@ -5,9 +5,16 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 (async () => {
   const PORT = process.env.PORT || 8000;
   const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix('api');
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('Test nest')
+    .setTitle('Swagger API')
+    .addSecurity('ApiKeyAuth', {
+      type: 'apiKey',
+      in: 'header',
+      name: 'accesstoken',
+    })
+    .addSecurityRequirements('ApiKeyAuth')
     .setVersion('1.0.0')
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);

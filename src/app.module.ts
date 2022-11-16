@@ -1,11 +1,12 @@
-import { RoleEntity } from './roles/roles.model';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { UsersModule } from './users/users.module';
 import { SequelizeModule } from '@nestjs/sequelize';
-import { UserEntity } from './users/users.model';
-import { RolesModule } from './roles/roles.module';
-import { UserRolesEntity } from './roles/user-roles.model';
+import { RoleEntity } from 'src/models/roles.model';
+import { UserEntity } from 'src/models/users.model';
+import { UserRolesEntity } from 'src/models/user-roles.model';
+import { UsersModule } from 'src/controllers/users/users.module';
+import { RolesModule } from 'src/controllers/roles/roles.module';
+import { AuthModule } from 'src/controllers/auth/auth.module';
 
 @Module({
   controllers: [],
@@ -21,11 +22,16 @@ import { UserRolesEntity } from './roles/user-roles.model';
       database: process.env.DB_DATABASE,
       schema: process.env.DB_SCHEMA,
       models: [UserEntity, RoleEntity, UserRolesEntity],
-      logging: true,
-      // autoLoadModels: true,
+      // logging: true,
     }),
     UsersModule,
     RolesModule,
+    AuthModule,
   ],
 })
-export class AppModule {}
+export class AppModule {
+  //example middleware
+  // configure(consumer: MiddlewareConsumer) {
+  //   consumer.apply(RolesMiddleware).forRoutes('roles');
+  // }
+}

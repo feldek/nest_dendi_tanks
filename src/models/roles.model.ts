@@ -1,5 +1,12 @@
-import { UserEntity } from './../users/users.model';
-import { BelongsToMany, Column, DataType, Model, Table } from 'sequelize-typescript';
+import { UserEntity } from './users.model';
+import {
+  BelongsToMany,
+  Column,
+  DataType,
+  HasMany,
+  Model,
+  Table,
+} from 'sequelize-typescript';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserRolesEntity } from './user-roles.model';
 
@@ -29,6 +36,9 @@ export class RoleEntity extends Model<RoleEntity, RoleCreationAttrs> {
   })
   @Column({ type: DataType.STRING })
   description: string;
+
+  @HasMany(() => UserRolesEntity)
+  userRoles: UserRolesEntity[];
 
   @BelongsToMany(() => UserEntity, () => UserRolesEntity)
   users: UserEntity[];

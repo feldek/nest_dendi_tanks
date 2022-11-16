@@ -7,8 +7,8 @@ const DB_SCHEMA = process.env.DB_SCHEMA;
 const target = { tableName: TABLE_NAME, schema: DB_SCHEMA };
 
 module.exports = {
-  up: withMigration((queryInterface, DataTypes, transaction) => {
-    return queryInterface.createTable(
+  up: withMigration(async (queryInterface, DataTypes, transaction) => {
+    await queryInterface.createTable(
       target,
       {
         id: {
@@ -26,6 +26,14 @@ module.exports = {
           type: DataTypes.STRING,
         },
       },
+      { transaction },
+    );
+
+    await queryInterface.sequelize.query(
+      `INSERT INTO "nest_shop"."roles" ("id", "value", "description")
+       VALUES (DEFAULT, 'admin', 'Admin permissions'),
+              (DEFAULT, 'user', 'Usual user permissions');
+              `,
       { transaction },
     );
   }),
