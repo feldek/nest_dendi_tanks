@@ -1,6 +1,7 @@
+import { request } from 'test/utils/configs/hook';
+
 import { ROLES } from 'src/constants';
 import { RoleEntity } from './../../src/models/roles.model';
-import { request } from 'test/utils/configs/hook';
 import { removeTablesData } from 'test/utils/configs/remove-table-data';
 
 const loginDto = {
@@ -18,7 +19,6 @@ beforeEach(async () => {
 });
 
 describe('auth/', () => {
-  // let access_token: string;
   it('/sign-up', async () => {
     const { body } = await request.post('/auth/sign-up').send(loginDto).expect(201);
     expect(typeof body.access_token).toBe('string');

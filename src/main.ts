@@ -6,13 +6,14 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
   const PORT = process.env.PORT || 8000;
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
+  app.enableCors({ origin: '*' });
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Swagger API')
     .addSecurity('ApiKeyAuth', {
       type: 'apiKey',
       in: 'header',
-      name: 'accesstoken',
+      name: 'access_token',
     })
     .addSecurityRequirements('ApiKeyAuth')
     .setVersion('1.0.0')

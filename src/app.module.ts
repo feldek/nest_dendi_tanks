@@ -22,6 +22,12 @@ import { AuthModule } from 'src/controllers/auth/auth.module';
       database: process.env.DB_DATABASE,
       schema: process.env.DB_SCHEMA,
       models: [UserEntity, RoleEntity, UserRolesEntity],
+      pool: {
+        max: 20,
+        min: 0,
+        acquire: 60000,
+        idle: 10000,
+      },
       // logging: true,
     }),
     UsersModule,

@@ -15,6 +15,7 @@ import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
 import { isEmpty, intersection } from 'lodash';
 
+//example middleware
 @Injectable()
 export class RolesMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
@@ -24,9 +25,8 @@ export class RolesMiddleware implements NestMiddleware {
   }
 }
 
-//example
 @Injectable()
-class Role implements CanActivate {
+export class Role implements CanActivate {
   constructor(
     private reflector: Reflector,
     // private jwtService: JwtService,
@@ -36,7 +36,7 @@ class Role implements CanActivate {
   canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
     const roles = this.reflector.get<ROLES[]>('roles', context.getHandler());
     const request = context.switchToHttp().getRequest();
-    const accessToken = request.headers.accesstoken;
+    const accessToken = request.headers.access_token;
     const payload = this.authService.decodeToken<{ userId: number; userRoles: ROLES[] }>(
       accessToken,
     );

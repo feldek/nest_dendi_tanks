@@ -1,5 +1,5 @@
 import { RoleEntity } from './roles.model';
-import { UserRolesEntity } from './user-roles.model';
+import { UserRolesEntity } from './user_roles.model';
 import { BelongsToMany, Column, DataType, HasMany, Model, Table } from 'sequelize-typescript';
 import { ApiProperty } from '@nestjs/swagger';
 

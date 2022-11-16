@@ -1,4 +1,4 @@
-import { UserRolesEntity } from '../../models/user-roles.model';
+import { UserRolesEntity } from '../../models/user_roles.model';
 import { RolesModule } from './../roles/roles.module';
 import { RoleEntity } from '../../models/roles.model';
 import { forwardRef, Module } from '@nestjs/common';

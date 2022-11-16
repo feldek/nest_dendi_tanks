@@ -5,7 +5,7 @@ import { RolesService } from './../roles/roles.service';
 import { HttpException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-users.dto';
 import { InjectModel } from '@nestjs/sequelize';
-import { UserRolesEntity } from './../../models/user-roles.model';
+import { UserRolesEntity } from '../../models/user_roles.model';
 import { ROLES } from 'src/constants';
 import { Transaction } from 'sequelize';
 
