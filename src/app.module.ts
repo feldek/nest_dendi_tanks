@@ -3,15 +3,17 @@ import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
 import { RoleEntity } from 'src/models/roles.model';
 import { UserEntity } from 'src/models/users.model';
-import { UserRolesEntity } from 'src/models/user-roles.model';
+import { UserRolesEntity } from 'src/models/user_roles.model';
 import { UsersModule } from 'src/controllers/users/users.module';
 import { RolesModule } from 'src/controllers/roles/roles.module';
 import { AuthModule } from 'src/controllers/auth/auth.module';
+import { WSModule } from './ws/ws.module';
 
 @Module({
   controllers: [],
   providers: [],
   imports: [
+    WSModule,
     ConfigModule.forRoot({ envFilePath: `.env` }),
     SequelizeModule.forRoot({
       dialect: 'postgres',
