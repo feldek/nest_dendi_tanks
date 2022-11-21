@@ -6,9 +6,10 @@ import {
   OnGatewayInit,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  MessageBody,
 } from '@nestjs/websockets';
 import { intersection } from 'lodash';
-import { IWsMessage, ModifyWebSocket } from 'src/interfaces/ws';
+import { ACTIONS, IWsMessage, ModifyWebSocket } from 'src/interfaces/ws';
 import { Server } from 'ws';
 
 @WebSocketGateway({
@@ -24,7 +25,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
 
   //nest expects an object to have the format { event: string, data: {...any} }
   //it's unnecessary but recommended
-  private sendMessage(message: IWsMessage) {
+  private sendMessage<T>(message: IWsMessage<T>) {
     const { action, ...otherParams } = message;
 
     //find consumer in accordance with "to" obj {userId or groups}
@@ -45,13 +46,14 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     });
   }
 
+  // handleMessage(_client: ModifyWebSocket, message: IWsMessage) {
   @SubscribeMessage('message')
-  handleMessage(_client: ModifyWebSocket, message: IWsMessage) {
+  handleMessage(@MessageBody() message: IWsMessage<{ test: string }>) {
     this.sendMessage(message);
   }
 
-  @SubscribeMessage('events')
-  onEvent(_client: ModifyWebSocket, message: IWsMessage) {
+  @SubscribeMessage(ACTIONS.SEND_MSG)
+  onEvent(@MessageBody() message: IWsMessage<{ test: string }>) {
     this.sendMessage(message);
   }
 
@@ -63,6 +65,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     this.logger.log(`Client disconnected: ${client.userId}`);
   }
 
+  // handleConnection(@ConnectedSocket() client: ModifyWebSocket, ...args: any[]) {
   handleConnection(client: ModifyWebSocket, ...args: any[]) {
     const clientId = +args[0].headers.userid;
     client.userId = clientId;

@@ -1,4 +1,5 @@
-import { IWsMessage } from 'src/interfaces/ws';
+import { v4 as uuidv4 } from 'uuid';
+import { ACTIONS, IWsMessage } from 'src/interfaces/ws';
 import WebSocket from 'ws';
 
 const SECRET_TEST_TOKEN = 'c8dcbb8c-ee30-11ec-8ea0-0242ac120002';
@@ -40,7 +41,7 @@ class WsClient {
 
   // from - userId who send message
   // to   - userId/groups array who accept message
-  public publish(message: IWsMessage, from: number) {
+  public publish<T>(message: IWsMessage<T>, from: number) {
     const { to } = message;
 
     if (!from) {
@@ -86,11 +87,11 @@ export const wsClient = new WsClient();
     await wsClient.publish(
       {
         to: { groups: ['group_test'] },
-        action: 'message',
-        uuid: 'uuid',
+        action: ACTIONS.SEND_MSG,
+        uuid: uuidv4(),
         payload: { test: 'test' },
       },
-      // { to: { userId: [1] }, action: 'test', uuid: 'uuid', payload: { test: 'test' } },
+      // { to: { userId: [1] }, action: 'test', uuid: uuidv4(), payload: { test: 'test' } },
       2,
     );
     // await wsClient.publish(
