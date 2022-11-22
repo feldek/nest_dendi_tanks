@@ -37,6 +37,7 @@
     "bcryptjs": "^2.4.3",
     "class-validator": "^0.13.2",
     "cross-env": "^7.0.3",
+    "ervy": "^1.0.7",
     "lodash": "^4.17.21",
     "pg": "^8.8.0",
     "pg-hstore": "^2.3.4",
