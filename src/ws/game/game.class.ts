@@ -11,6 +11,7 @@ interface IMap {
     y: number;
   };
 }
+const RADIUS_TANK = 10;
 
 class GameClass {
   private map: IMap;
@@ -66,29 +67,37 @@ class GameClass {
   launch() {
     setInterval(() => {
       this.NCycles += 1;
+      this.missiles = this.missiles.filter((missile) =>
+        missile.calculateCoordinates(this.map.size),
+      );
+
       this.userIds.map((userId) => {
         const tank = this.users[userId].tank;
-        if (tank.state === 'move') {
-          tank.move.calculate();
-        }
-      });
+        tank.calculateCoordinates(this.map.size);
 
-      this.missiles = this.missiles.filter((missile) => {
-        missile.move.calculate();
+        //already change missiles coordinates
+        this.missiles = this.missiles.filter((missile) => {
+          const hitCondition =
+            tank.x + RADIUS_TANK >= missile.x &&
+            tank.x - RADIUS_TANK <= missile.x &&
+            tank.y + RADIUS_TANK >= missile.y &&
+            tank.y - RADIUS_TANK <= missile.y;
 
-        if (missile.direction === 'bottom' || missile.direction === 'top') {
-          return this.map.size.y > missile.y && missile.y > 0;
-        }
-        return this.map.size.x > missile.x && missile.x > 0;
+          if (hitCondition && userId !== missile.userId) {
+            return false;
+          }
+          return true;
+        });
       });
 
       this.showInConsole();
-      this.readKeystrokes();
+      this.readKeyboard();
     }, DELTA_T * 1000);
   }
 
-  readKeystrokes() {
-    const tank = this.users[this.userIds[0]].tank;
+  readKeyboard() {
+    const userId = this.userIds[0];
+    const tank = this.users[userId].tank;
     readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);
 
@@ -110,6 +119,7 @@ class GameClass {
             speed: 90,
             x: tank.x,
             y: tank.y,
+            userId,
           }),
         );
       }
@@ -121,9 +131,12 @@ class GameClass {
 //   {
 //     42: new UserClass(
 //       { teamId: '1asd' },
-//       new TankClass({ x: 10, y: 10, speed: 40, direction: 'right', state: 'move' }),
+//       new TankClass({ x: 10, y: 10, speed: 40, direction: 'top', state: 'move' }),
 //     ),
-//     46: new UserClass({ teamId: '1asd' }),
+//     46: new UserClass(
+//       { teamId: '1asd' },
+//       new TankClass({ x: 10, y: 200, direction: 'top', speed: 40 }),
+//     ),
 //   },
 //   {
 //     size: { x: 300, y: 300 },
