@@ -30,18 +30,7 @@ class ControlClass extends GameClass {
         tank.changeMovement({ direction: 'bottom' });
       },
       space: (userId: number) => {
-        const tank = this.tanks[userId];
-        this.missiles.push(
-          new MissilesClass({
-            direction: tank.direction,
-            speed: tank.weapon.speed,
-            x: tank.x,
-            y: tank.y,
-            userId,
-            teamId: this.tanks[userId].teamId,
-            damage: tank.weapon.damage,
-          }),
-        );
+        this.tanks[userId].shot(this.missiles);
       },
       p: () => {
         if (this.gameState.paused) {
@@ -71,28 +60,28 @@ class ControlClass extends GameClass {
   }
 }
 
-// const newGame = new ControlClass(
-//   {
-//     42: { teamId: '1asd', x: 20, y: 20, speed: 40, direction: 'top', state: 'move' },
-//     46: { teamId: 'test', x: 10, y: 200, direction: 'top', speed: 40 },
-//   },
+const newGame = new ControlClass(
+  {
+    42: { teamId: '1asd', x: 20, y: 20, speed: 40, direction: 'top', state: 'move' },
+    46: { teamId: 'test', x: 10, y: 200, direction: 'top', speed: 40 },
+  },
 
-//   new MapClass({
-//     size: { x: 300, y: 300 },
-//     blocks: [
-//       { x: 100, y: 10, currentDurability: 4 },
-//       { x: 100, y: 30, currentDurability: 4 },
-//       { x: 100, y: 50, currentDurability: 4 },
-//       { x: 100, y: 70, currentDurability: 4 },
-//       { x: 100, y: 90, currentDurability: 4 },
-//       { x: 100, y: 110, currentDurability: 4 },
-//       { x: 210, y: 250, currentDurability: 4 },
-//       { x: 230, y: 250, currentDurability: 4 },
-//       { x: 250, y: 250, currentDurability: 4 },
-//       { x: 270, y: 250, currentDurability: 4 },
-//       { x: 290, y: 250, currentDurability: 4 },
-//     ],
-//   }),
-// );
+  new MapClass({
+    size: { x: 300, y: 300 },
+    blocks: [
+      { x: 100, y: 10, currentDurability: 4 },
+      { x: 100, y: 30, currentDurability: 4 },
+      { x: 100, y: 50, currentDurability: 4 },
+      { x: 100, y: 70, currentDurability: 4 },
+      { x: 100, y: 90, currentDurability: 4 },
+      { x: 100, y: 110, currentDurability: 4 },
+      { x: 210, y: 250, currentDurability: 4 },
+      { x: 230, y: 250, currentDurability: 4 },
+      { x: 250, y: 250, currentDurability: 4 },
+      { x: 270, y: 250, currentDurability: 4 },
+      { x: 290, y: 250, currentDurability: 4 },
+    ],
+  }),
+);
 
-// newGame.startGame();
+newGame.startGame();

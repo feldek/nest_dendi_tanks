@@ -3,6 +3,7 @@ import { RequireAtLeastOne } from 'src/interfaces/common';
 import { DynamicObjClass, IDynamicObj } from '../common/dynamicObj.class';
 import { WeaponClass } from './weapon.class';
 import { RADIUS } from 'src/constants/game.constants';
+import { MissilesClass } from '../missiles.class';
 
 export type tankActionType = 'stay' | 'move' | 'hold';
 
@@ -21,6 +22,7 @@ export class TankClass extends DynamicObjClass {
   public armor: number;
   public currentArmor: number;
   public weapon: WeaponClass;
+  public shotPossibility: boolean = true;
 
   constructor(tank: ITankClass, callbackCheckEndGame: () => void, weapon?: WeaponClass) {
     const { x, y, speed, direction } = tank;
@@ -119,5 +121,26 @@ export class TankClass extends DynamicObjClass {
     }
 
     return false;
+  }
+
+  shot(missiles: MissilesClass[]) {
+    if (this.shotPossibility) {
+      missiles.push(
+        new MissilesClass({
+          direction: this.direction,
+          speed: this.weapon.speed,
+          x: this.x,
+          y: this.y,
+          userId: this.userId,
+          teamId: this.teamId,
+          damage: this.weapon.damage,
+        }),
+      );
+
+      this.shotPossibility = false;
+      setTimeout(() => {
+        this.shotPossibility = true;
+      }, this.weapon.rateOfFire);
+    }
   }
 }
