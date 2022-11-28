@@ -1,4 +1,4 @@
-import { DynamicObjClass, IDynamicObj } from './dynamicObj.class';
+import { DynamicObjClass, IDynamicObj } from './common/dynamicObj.class';
 
 interface IMissilesClass extends IDynamicObj {
   damage: number;

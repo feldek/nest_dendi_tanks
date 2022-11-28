@@ -1,11 +1,12 @@
-import { MISSILES_LANDSCAPE_RADIUS, LANDSCAPE_RADIUS } from './game.class';
+import { RADIUS } from 'src/constants/game.constants';
+import { MissilesClass } from '../missiles.class';
 
 export interface IMapClass {
   size?: {
     x: number;
     y: number;
   };
-  blocks: { x: number; y: number; durability?: number }[];
+  blocks: { x: number; y: number; currentDurability: number }[];
 }
 export class MapClass implements IMapClass {
   public size: IMapClass['size'];
@@ -31,36 +32,41 @@ export class MapClass implements IMapClass {
         const { x: x2, y: y2 } = blocks[i];
 
         const conditionXError =
-          (x1 > x2 && x2 + 2 * LANDSCAPE_RADIUS > x1) ||
-          (x2 > x1 && x1 + 2 * LANDSCAPE_RADIUS > x2);
+          (x1 > x2 && x2 + 2 * RADIUS.BLOCK > x1) || (x2 > x1 && x1 + 2 * RADIUS.BLOCK > x2);
 
         const conditionYError =
-          (y1 > y2 && y2 + 2 * LANDSCAPE_RADIUS > y1) ||
-          (y2 > y1 && y1 + 2 * LANDSCAPE_RADIUS > y2);
+          (y1 > y2 && y2 + 2 * RADIUS.BLOCK > y1) || (y2 > y1 && y1 + 2 * RADIUS.BLOCK > y2);
 
         if (conditionXError) {
-          throw new Error(`Intersection between x ${x1} and ${x2} r=(${LANDSCAPE_RADIUS})`);
+          throw new Error(`Intersection between x ${x1} and ${x2} r=(${RADIUS.BLOCK})`);
         } else if (conditionYError) {
-          throw new Error(`Intersection between y ${y1} and ${y2} r=(${LANDSCAPE_RADIUS})`);
+          throw new Error(`Intersection between y ${y1} and ${y2} r=(${RADIUS.BLOCK})`);
         }
       }
     });
   }
 
   //check and remove landscape, if missile hit
-  checkMissileHitToLandscape(missile: { x: number; y: number }) {
+  checkMissileDestroyLandscape(missile: MissilesClass) {
     const findIndexHit = this.blocks.findIndex(({ x, y }) => {
       const hitToLandscapeCondition =
-        x + MISSILES_LANDSCAPE_RADIUS >= missile.x &&
-        x - MISSILES_LANDSCAPE_RADIUS <= missile.x &&
-        y + MISSILES_LANDSCAPE_RADIUS >= missile.y &&
-        y - MISSILES_LANDSCAPE_RADIUS <= missile.y;
+        x + RADIUS.MISSILES_BLOCK >= missile.x &&
+        x - RADIUS.MISSILES_BLOCK <= missile.x &&
+        y + RADIUS.MISSILES_BLOCK >= missile.y &&
+        y - RADIUS.MISSILES_BLOCK <= missile.y;
 
       return hitToLandscapeCondition;
     });
 
     if (findIndexHit !== -1) {
-      this.blocks.splice(findIndexHit, 1);
+      const currentDurability = this.blocks[findIndexHit].currentDurability - missile.damage;
+      this.blocks[findIndexHit] = {
+        ...this.blocks[findIndexHit],
+        currentDurability,
+      };
+      if (currentDurability <= 0) {
+        this.blocks.splice(findIndexHit, 1);
+      }
       return true;
     }
 
