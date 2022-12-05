@@ -1,4 +1,4 @@
-import { DynamicObjClass, IDynamicObj } from './common/dynamicObj.class';
+import { DynamicObjClass, IDynamicObj } from '../common/dynamicObj.class';
 
 interface IMissilesClass extends IDynamicObj {
   damage: number;
@@ -20,7 +20,7 @@ export class MissilesClass extends DynamicObjClass {
 
   //return false, if missiles move out from map
   checkEndMap(size: { x: number; y: number }) {
-    if (this.direction === 'bottom' || this.direction === 'top') {
+    if (this.direction === 'down' || this.direction === 'up') {
       return size.y >= this.y && this.y > 0;
     }
     return size.x >= this.x && this.x > 0;

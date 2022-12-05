@@ -3,12 +3,18 @@ import { RequireAtLeastOne } from 'src/interfaces/common';
 import { DynamicObjClass, IDynamicObj } from '../common/dynamicObj.class';
 import { WeaponClass } from './weapon.class';
 import { RADIUS } from 'src/constants/game.constants';
-import { MissilesClass } from '../missiles.class';
+import { MissilesClass } from '../missiles/missiles.class';
+import { ModifyWebSocket } from 'src/interfaces/ws';
 
 export type tankActionType = 'stay' | 'move' | 'hold';
+export type TTankControl = RequireAtLeastOne<
+  Pick<TankClass, 'direction' | 'state'>,
+  'direction' | 'state'
+>;
 
 export interface ITankClass extends IDynamicObj {
-  userId?: number;
+  ws: ModifyWebSocket;
+  userId: number;
   teamId: string;
   state?: tankActionType;
   armor?: number;
@@ -16,6 +22,7 @@ export interface ITankClass extends IDynamicObj {
 }
 
 export class TankClass extends DynamicObjClass {
+  public ws: ModifyWebSocket;
   public userId?: number;
   public teamId: string;
   public state: tankActionType;
@@ -34,6 +41,7 @@ export class TankClass extends DynamicObjClass {
     this.weapon = weapon ?? new WeaponClass();
     this.userId = tank?.userId;
     this.teamId = tank.teamId;
+    this.ws = tank.ws;
 
     //each times when some tank currentArmor set <0, check if the game is over
     return new Proxy(this, {
@@ -53,8 +61,8 @@ export class TankClass extends DynamicObjClass {
   //calculate new coordinates with
   calculateCoordinates(size: { x: number; y: number }) {
     const stopCondition =
-      (this.direction === 'bottom' && this.y - this.speed * DELTA_T <= 0) ||
-      (this.direction === 'top' && this.y + this.speed * DELTA_T >= size.y) ||
+      (this.direction === 'down' && this.y - this.speed * DELTA_T <= 0) ||
+      (this.direction === 'up' && this.y + this.speed * DELTA_T >= size.y) ||
       (this.direction === 'left' && this.x - this.speed * DELTA_T <= 0) ||
       (this.direction === 'right' && this.x + this.speed * DELTA_T >= size.x);
 
@@ -66,13 +74,13 @@ export class TankClass extends DynamicObjClass {
   intersectionLandscape(block: { x: number; y: number }) {
     let intersectionCondition = false;
 
-    if (this.direction === 'bottom') {
+    if (this.direction === 'down') {
       intersectionCondition =
         block.x + RADIUS.LANDSCAPE_TANK > this.x &&
         block.x - RADIUS.LANDSCAPE_TANK < this.x &&
         block.y + RADIUS.LANDSCAPE_TANK > this.y - this.speed * DELTA_T &&
         block.y - RADIUS.LANDSCAPE_TANK < this.y - this.speed * DELTA_T;
-    } else if (this.direction === 'top') {
+    } else if (this.direction === 'up') {
       intersectionCondition =
         block.x + RADIUS.LANDSCAPE_TANK > this.x &&
         block.x - RADIUS.LANDSCAPE_TANK < this.x &&
@@ -95,9 +103,7 @@ export class TankClass extends DynamicObjClass {
     return intersectionCondition;
   }
 
-  changeMovement(
-    params: RequireAtLeastOne<Pick<TankClass, 'direction' | 'state'>, 'direction' | 'state'>,
-  ) {
+  changeMovement(params: TTankControl) {
     if (params.direction) {
       this.direction = params.direction;
     }

@@ -2,29 +2,31 @@ import { IntervalTimer } from './common/interval.class';
 import { ITankClass, TankClass } from './tank/tank.class';
 import { scatter, bg, fg } from 'ervy';
 import { DELTA_T } from '../../constants';
-import { MissilesClass } from './missiles.class';
-import { IMapClass, MapClass } from './map/map.class';
+import { MissilesClass } from './missiles/missiles.class';
+import { MapClass } from './map/map.class';
+import { ACTIONS_TO_CLIENT } from 'src/interfaces/ws';
+
+//where key - userId
+export type GameTanksConstructor = ITankClass[];
+export type TGameTanks = { [key: number]: TankClass };
 
 export class GameClass {
   map: MapClass;
   userIds: number[];
-  tanks: { [key: number]: TankClass };
+  tanks: TGameTanks;
   missiles: MissilesClass[];
   gameState: IntervalTimer;
+  gameStarted: boolean = false;
 
-  constructor(tanks: { [key: number]: ITankClass }, map: IMapClass) {
-    const userIds = Object.keys(tanks).map(Number);
-
-    const tankInstances: { [key: number]: TankClass } = {};
-    userIds.forEach((key) => {
-      tankInstances[key] = new TankClass(
-        { ...tanks[key], userId: key },
-        this.checkEndGame.bind(this),
-      );
+  constructor(tanks: ITankClass[], map: MapClass) {
+    const tankInstances: TGameTanks = {};
+    tanks.forEach((tank) => {
+      tankInstances[tank.userId] = new TankClass(tank, this.checkEndGame.bind(this));
     });
-    this.userIds = userIds;
+
+    this.userIds = tanks.map((tank) => tank.userId);
     this.tanks = tankInstances;
-    this.map = new MapClass(map);
+    this.map = map;
     this.missiles = [];
     this.gameState = new IntervalTimer(() => this.calculateOneStep(), DELTA_T * 1000);
   }
@@ -39,14 +41,14 @@ export class GameClass {
       style: bg('cyan', 2),
       // sides: [1, 1],
     };
-    const user2 = {
-      key: 'B',
-      value: [
-        Math.round(this.tanks[this.userIds[1]].x / 10),
-        Math.round(this.tanks[this.userIds[1]].y / 10),
-      ],
-      style: bg('red', 2),
-    };
+    // const user2 = {
+    //   key: 'B',
+    //   value: [
+    //     Math.round(this.tanks[this.userIds[1]].x / 10),
+    //     Math.round(this.tanks[this.userIds[1]].y / 10),
+    //   ],
+    //   style: bg('red', 2),
+    // };
 
     const landscape = this.map.blocks.map(({ x, y }) => ({
       key: 'C',
@@ -61,7 +63,7 @@ export class GameClass {
 
     const renderObj = landscape.concat(missiles);
     renderObj.push(user1);
-    renderObj.push(user2);
+    // renderObj.push(user2);
 
     console.log(
       scatter(renderObj, {
@@ -114,7 +116,28 @@ export class GameClass {
       return !hitToLandscape;
     });
 
-    this.showInConsole();
+    // this.showInConsole();
+
+    const tanksData = Object.values(this.tanks).map(({ x, y, currentArmor, direction }) => ({
+      x,
+      y,
+      currentArmor,
+      direction,
+    }));
+
+    Object.values(this.tanks).forEach(({ ws }) => {
+      ws.send(
+        JSON.stringify({
+          event: ACTIONS_TO_CLIENT.SET_GAME_DATA,
+          data: {
+            payload: {
+              missiles: this.missiles,
+              tanks: tanksData,
+            },
+          },
+        }),
+      );
+    });
   }
 
   checkEndGame() {
@@ -130,7 +153,24 @@ export class GameClass {
       console.log('End Game');
       console.log(`Team ${lifeTanks.values().next().value} win`);
 
-      this.gameState.clear();
+      this.endGame();
     }
+  }
+
+  startGame() {
+    this.gameState.start();
+    this.gameStarted = true;
+  }
+
+  endGame() {
+    this.gameState.clear();
+  }
+
+  pauseOnOff() {
+    if (this.gameState.paused) {
+      return this.gameState.resume();
+    }
+
+    this.gameState.pause();
   }
 }

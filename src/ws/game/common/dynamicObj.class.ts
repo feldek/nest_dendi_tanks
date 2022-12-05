@@ -1,5 +1,5 @@
 import { DELTA_T } from '../../../constants/index';
-export type directionType = 'right' | 'left' | 'top' | 'bottom';
+export type directionType = 'right' | 'left' | 'up' | 'down';
 export interface ICoordinate {
   x: number;
   y: number;
@@ -21,8 +21,8 @@ export class DynamicObjClass implements IDynamicObj {
   public move: {
     right: MoveType;
     left: MoveType;
-    top: MoveType;
-    bottom: MoveType;
+    up: MoveType;
+    down: MoveType;
     calculate: MoveType;
   };
 
@@ -39,10 +39,10 @@ export class DynamicObjClass implements IDynamicObj {
       left: () => {
         this.x -= this.speed * DELTA_T;
       },
-      top: () => {
+      up: () => {
         this.y += this.speed * DELTA_T;
       },
-      bottom: () => {
+      down: () => {
         this.y -= this.speed * DELTA_T;
       },
       calculate: () => {

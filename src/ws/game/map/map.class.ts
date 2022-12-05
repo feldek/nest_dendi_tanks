@@ -1,5 +1,5 @@
 import { RADIUS } from 'src/constants/game.constants';
-import { MissilesClass } from '../missiles.class';
+import { MissilesClass } from '../missiles/missiles.class';
 
 export interface IMapClass {
   size?: {
