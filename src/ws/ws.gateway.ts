@@ -1,6 +1,6 @@
+import { v4 as uuidv4 } from 'uuid';
 import { Logger } from '@nestjs/common';
 import {
-  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
   OnGatewayInit,
@@ -8,8 +8,9 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { intersection } from 'lodash';
-import { IWsMessage, ModifyWebSocket } from 'src/interfaces/ws';
+import { ACTIONS, IWsMessage, ModifyWebSocket } from 'src/interfaces/ws';
 import { Server } from 'ws';
+import { ROLES } from 'src/constants';
 
 @WebSocketGateway({
   cors: {
@@ -20,13 +21,11 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
   @WebSocketServer()
   server: Server<ModifyWebSocket>;
 
-  private logger: Logger = new Logger('AppGateway');
+  protected logger: Logger = new Logger('AppGateway');
 
   //nest expects an object to have the format { event: string, data: {...any} }
   //it's unnecessary but recommended
-  private sendMessage(message: IWsMessage) {
-    const { action, ...otherParams } = message;
-
+  protected sendMessage<T>(message: IWsMessage<T>) {
     //find consumer in accordance with "to" obj {userId or groups}
     const listWsClients = Array.from(this.server.clients);
     const userTarget = Object.entries(message.to)
@@ -41,18 +40,21 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
       .flat();
 
     userTarget.forEach((user) => {
-      user.send(JSON.stringify({ event: action, data: otherParams }));
+      user.send(JSON.stringify(this.generateResponse<T>(message)));
     });
   }
 
-  @SubscribeMessage('message')
-  handleMessage(_client: ModifyWebSocket, message: IWsMessage) {
-    this.sendMessage(message);
+  protected generateResponse<T>(message: IWsMessage<T>): {
+    event: IWsMessage<T>['event'];
+    data: Omit<IWsMessage<T>, 'event'>;
+  } {
+    const { event, ...otherParams } = message;
+    return { event, data: otherParams };
   }
 
-  @SubscribeMessage('events')
-  onEvent(_client: ModifyWebSocket, message: IWsMessage) {
-    this.sendMessage(message);
+  protected getWsConnectionBy(userId: number) {
+    const listWsClients = Array.from(this.server.clients);
+    return listWsClients.find((client) => client.userId === userId);
   }
 
   afterInit(server: Server) {
@@ -63,23 +65,35 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     this.logger.log(`Client disconnected: ${client.userId}`);
   }
 
+  // handleConnection(@ConnectedSocket() client: ModifyWebSocket, ...args: any[]) {
   handleConnection(client: ModifyWebSocket, ...args: any[]) {
     const clientId = +args[0].headers.userid;
     client.userId = clientId;
+    //TODO: get role from db
     client.groups = ['group_test'];
-
-    client.send(
-      JSON.stringify({
-        event: 'message',
-        data: {
-          payload: { msg: `Hello user ${clientId}` },
-          to: clientId,
-          action: 'connection',
-          uuid: 'uuid',
-        },
-      }),
-    );
+    client.userRoles = [ROLES.ADMIN];
 
     this.logger.log(`Client connected: ${clientId}`);
+
+    const message = JSON.stringify(
+      this.generateResponse({
+        event: ACTIONS.CONNECTION,
+        payload: { message: `Hello user ${clientId}` },
+        uuid: uuidv4(),
+      }),
+    );
+    client.send(message);
+  }
+
+  static sendError<T = {}>(
+    client: ModifyWebSocket,
+    data: { message: string; status?: number } & T,
+  ) {
+    client.send(
+      JSON.stringify({
+        event: ACTIONS.ERROR,
+        data: { message: data.message, status: data.status || 400 },
+      }),
+    );
   }
 }

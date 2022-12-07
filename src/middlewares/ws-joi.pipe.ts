@@ -1,0 +1,27 @@
+import {
+  PipeTransform,
+  Injectable,
+  ArgumentMetadata,
+  BadRequestException,
+  applyDecorators,
+  UsePipes,
+} from '@nestjs/common';
+import { ObjectSchema } from 'joi';
+
+@Injectable()
+export class JoiValidationPipe implements PipeTransform {
+  constructor(private schema: ObjectSchema) {}
+
+  transform(value: any, _metadata: ArgumentMetadata) {
+    //check payload field for ws message
+    const { error } = this.schema.validate(value.payload);
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+    return value;
+  }
+}
+
+export const JoiWsPipe = (schema: ObjectSchema) => {
+  return applyDecorators(UsePipes(new JoiValidationPipe(schema)));
+};
