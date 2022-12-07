@@ -14,7 +14,10 @@ import { intersection } from 'lodash';
 import { ACTIONS, ACTIONS_TO_CLIENT, IWsMessage, ModifyWebSocket } from 'src/interfaces/ws';
 import { Server } from 'ws';
 import { gameSessions } from './game/gameSessions.class';
-import { ITankClass, TTankControl } from './game/tank/tank.class';
+import { IJoi } from './schema/intex';
+import { WsRouterDecorators } from 'src/middlewares';
+import { WsRoleGuard } from 'src/middlewares/roles.guard';
+import { ROLES } from 'src/constants';
 
 @WebSocketGateway({
   cors: {
@@ -61,9 +64,11 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     return listWsClients.find((client) => client.userId === userId);
   }
 
-  // handleMessage(_client: ModifyWebSocket, message: IWsMessage) {
-  @SubscribeMessage('message')
-  handleMessage(@MessageBody() message: IWsMessage<{ test: string }>) {
+  @WsRoleGuard(ROLES.ADMIN)
+  @WsRouterDecorators(ACTIONS.TEST)
+  handleMessage(@MessageBody() message: IWsMessage<IJoi[ACTIONS.TEST]>) {
+    console.log(message);
+
     return this.generateResponse<{ test: string }>({
       event: ACTIONS.CONNECTION,
       uuid: 'test',
@@ -76,8 +81,8 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     this.sendMessage(message);
   }
 
-  @SubscribeMessage(ACTIONS.CREATE_NEW_GAME)
-  newGame(client: ModifyWebSocket, message: IWsMessage<Omit<ITankClass, 'ws' | 'userId'>>) {
+  @WsRouterDecorators(ACTIONS.CREATE_NEW_GAME)
+  newGame(client: ModifyWebSocket, message: IWsMessage<IJoi[ACTIONS.CREATE_NEW_GAME]>) {
     const userId = client.userId;
     const gameId = gameSessions.createGameSession({
       tanks: [
@@ -98,11 +103,8 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     });
   }
 
-  @SubscribeMessage(ACTIONS.JOIN_TO_GAME)
-  joinToGame(
-    client: ModifyWebSocket,
-    message: IWsMessage<Omit<ITankClass, 'ws' | 'userId'> & { gameId: number }>,
-  ) {
+  @WsRouterDecorators(ACTIONS.JOIN_TO_GAME)
+  joinToGame(client: ModifyWebSocket, message: IWsMessage<IJoi[ACTIONS.JOIN_TO_GAME]>) {
     const userId = client.userId;
     const { gameId, ...otherParams } = message.payload;
     gameSessions.joinToGame(gameId, {
@@ -121,27 +123,27 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     gameSessions[gameId].startGame();
   }
 
-  @SubscribeMessage(ACTIONS.START_GAME)
+  @WsRouterDecorators(ACTIONS.START_GAME)
   startGame(client: ModifyWebSocket) {
     const game = gameSessions[client.gameId];
     game.startGame();
   }
 
-  @SubscribeMessage(ACTIONS.PAUSE_GAME)
+  @WsRouterDecorators(ACTIONS.PAUSE_GAME)
   pauseGame(client: ModifyWebSocket) {
     const game = gameSessions[client.gameId];
     game.pauseOnOff();
   }
 
-  // TODO: added admin check
-  @SubscribeMessage(ACTIONS.FORCE_END_GAME)
-  endGame(@MessageBody() message: IWsMessage<{ gameId: number }>) {
+  @WsRouterDecorators(ACTIONS.FORCE_END_GAME)
+  endGame(@MessageBody() message: IWsMessage<IJoi[ACTIONS.FORCE_END_GAME]>) {
     const game = gameSessions[message.payload.gameId];
     game.endGame();
   }
 
-  @SubscribeMessage(ACTIONS.GET_NOT_STARTED_GAMES)
-  getNotStartedGames(client: ModifyWebSocket) {
+  @WsRoleGuard(ROLES.ADMIN)
+  @WsRouterDecorators(ACTIONS.GET_NOT_STARTED_GAMES)
+  getNotStartedGames() {
     const gameList: { gameId: number; currentUsers: number }[] = Object.keys(gameSessions).flatMap(
       (key) => {
         const game = gameSessions[+key];
@@ -154,14 +156,14 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     return this.sendToClient[ACTIONS.GET_NOT_STARTED_GAMES](gameList);
   }
 
-  @SubscribeMessage(ACTIONS.TANK_MOVEMENT)
-  tankMovement(client: ModifyWebSocket, message: IWsMessage<TTankControl>) {
+  @WsRouterDecorators(ACTIONS.TANK_MOVEMENT)
+  tankMovement(client: ModifyWebSocket, message: IWsMessage<IJoi[ACTIONS.TANK_MOVEMENT]>) {
     const { userId, gameId } = client;
     const tank = gameSessions[gameId].tanks[userId];
     tank.changeMovement(message.payload);
   }
 
-  @SubscribeMessage(ACTIONS.TANK_SHOT)
+  @WsRouterDecorators(ACTIONS.TANK_SHOT)
   tankShot(client: ModifyWebSocket) {
     const { userId, gameId } = client;
     const tank = gameSessions[gameId].tanks[userId];
@@ -186,7 +188,9 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
   handleConnection(client: ModifyWebSocket, ...args: any[]) {
     const clientId = +args[0].headers.userid;
     client.userId = clientId;
+    //TODO: get role from db
     client.groups = ['group_test'];
+    client.userRoles = [ROLES.ADMIN];
 
     this.logger.log(`Client connected: ${clientId}`);
 
@@ -198,5 +202,17 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
       }),
     );
     client.send(message);
+  }
+
+  static sendError<T = {}>(
+    client: ModifyWebSocket,
+    data: { message: string; status?: number } & T,
+  ) {
+    client.send(
+      JSON.stringify({
+        event: ACTIONS.ERROR,
+        data: { message: data.message, status: data.status || 400 },
+      }),
+    );
   }
 }

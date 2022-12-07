@@ -27,11 +27,12 @@ class WsClient {
     connection.on('message', (data) => {
       //@ts-ignore
       const wsData = JSON.parse(data);
-      if ((wsData.event = ACTIONS_TO_CLIENT.SET_GAME_ID)) {
+      if (wsData.event === ACTIONS_TO_CLIENT.SET_GAME_ID) {
         gameId = wsData.data.payload.gameId;
       }
 
-      console.log(`userId ${userId}:`, wsData.data.payload);
+      // console.log(`userId ${userId}:`, wsData.data.payload);
+      console.log(`userId ${userId}:`, wsData.data);
     });
 
     //remove from users list when user invoke close event
@@ -48,7 +49,7 @@ class WsClient {
   // from - userId who send message
   // to   - userId/groups array who accept message
   public publish<T>(message: IWsMessage<T>, from: number) {
-    const { to } = message;
+    const { event, ...data } = message;
 
     if (!from) {
       console.error(`this user: ${from} do not have ws connect`);
@@ -58,9 +59,9 @@ class WsClient {
     const user = this.findUser(from);
 
     if (user) {
-      user.connection.send(JSON.stringify({ event: message.event, data: message }));
+      user.connection.send(JSON.stringify({ event: message.event, data }));
     } else {
-      console.log(`userId: ${to || undefined} does not exist online`);
+      console.log(`userId: ${message?.to} does not exist online`);
     }
   }
 
@@ -116,6 +117,24 @@ export const wsClient = new WsClient();
     await new Promise((resolve) => {
       setTimeout(() => resolve(''), 500);
     });
+
+    await wsClient.publish(
+      {
+        //@ts-ignore
+        event: 'TEST',
+        uuid: uuidv4(),
+        // email: 'oneTestgmail.com',
+        // password: '456789A',
+        // userName: 'test',
+        payload: {
+          email: 'oneTest@gmail.com',
+          password: 'testPassword',
+          // lol: 'qwe',
+        },
+      },
+      userIds[0],
+    );
+    return;
     await wsClient.publish(
       {
         // to: { userId: ['group_test'] },
@@ -133,7 +152,6 @@ export const wsClient = new WsClient();
       },
       userIds[0],
     );
-
     await wsClient.publish(
       {
         event: ACTIONS.GET_NOT_STARTED_GAMES,

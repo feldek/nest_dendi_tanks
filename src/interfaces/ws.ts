@@ -1,10 +1,15 @@
 import { RequireOnlyOne } from './common';
 import { WebSocket } from 'ws';
+import { ROLES } from 'src/constants';
 
 interface ITargetWs {
   userId: number;
   groups: string[];
   gameId: number;
+}
+
+interface IUserRoles {
+  userRoles: ROLES[];
 }
 
 export interface IWsMessage<T extends {}> {
@@ -15,9 +20,10 @@ export interface IWsMessage<T extends {}> {
   from?: number;
 }
 
-export interface ModifyWebSocket extends WebSocket, ITargetWs {}
+export interface ModifyWebSocket extends WebSocket, ITargetWs, IUserRoles {}
 
 export const enum ACTIONS {
+  TEST = 'TEST',
   ERROR = 'ERROR',
   CONNECTION = 'CONNECTION',
   SEND_MSG = 'SEND_MSG',

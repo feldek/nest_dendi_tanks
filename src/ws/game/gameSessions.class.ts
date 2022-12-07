@@ -2,16 +2,17 @@ import { GameClass } from './game.class';
 import { MapClass } from './map/map.class';
 import { ITankClass, TankClass } from './tank/tank.class';
 
+export type TGameId = number;
 export class GameSessionsClass {
-  [key: number]: GameClass;
+  [key: TGameId]: GameClass;
 
   constructor() {}
 
   createGameSession(sessions: { tanks: ITankClass[]; map: MapClass }) {
     const { tanks, map } = sessions;
-    const sessionId = this.getNewSessionId();
-    this[sessionId] = new GameClass(tanks, map);
-    return sessionId;
+    const gameId = this.getNewSessionId();
+    this[gameId] = new GameClass(tanks, map);
+    return gameId;
   }
 
   joinToGame(gameId: number, tank: ITankClass) {
