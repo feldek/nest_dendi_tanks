@@ -1,3 +1,4 @@
+import { WsController } from './../ws/ws.controller';
 import {
   applyDecorators,
   CanActivate,
@@ -24,7 +25,7 @@ class WsRole implements CanActivate {
     const isWrongPermissions = isEmpty(intersection(request.userRoles, roles));
 
     if (isWrongPermissions) {
-      WsGateway.sendError(request, {
+      WsController.sendError(request, {
         message: 'You do not have necessary permissions',
         status: 401,
       });
