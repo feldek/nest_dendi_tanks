@@ -164,6 +164,9 @@ export class GameClass {
 
   endGame() {
     this.gameState.clear();
+    Object.keys(this.tanks).forEach((userId) => {
+      this.tanks[+userId].ws.gameId = null;
+    });
   }
 
   pauseOnOff() {

@@ -1,11 +1,12 @@
 import { ROLES } from 'src/constants';
-import { Injectable, HttpException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, HttpException, UnauthorizedException, Global } from '@nestjs/common';
 import { JwtService, JwtSignOptions, JwtVerifyOptions } from '@nestjs/jwt';
 import { CreateUserDto } from '../users/dto/create-users.dto';
 import { UsersService } from '../users/users.service';
 import bcrypt from 'bcryptjs';
 import { Transaction } from 'sequelize';
 
+@Global()
 @Injectable()
 export class AuthService {
   constructor(private userService: UsersService, private jwtService: JwtService) {}

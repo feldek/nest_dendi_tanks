@@ -7,12 +7,13 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { ObjectSchema } from 'joi';
+import { IWsData } from 'src/interfaces/ws';
 
 @Injectable()
 export class JoiValidationPipe implements PipeTransform {
   constructor(private schema: ObjectSchema) {}
 
-  transform(value: any, _metadata: ArgumentMetadata) {
+  transform(value: IWsData<any>, _metadata: ArgumentMetadata) {
     //check payload field for ws message
     const { error } = this.schema.validate(value.payload);
     if (error) {

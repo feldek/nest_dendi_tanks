@@ -3,21 +3,26 @@ import { WebSocket } from 'ws';
 import { ROLES } from 'src/constants';
 
 interface ITargetWs {
-  userId: number;
+  userId: number | null;
   groups: string[];
-  gameId: number;
+  gameId: number | null;
 }
 
 interface IUserRoles {
   userRoles: ROLES[];
 }
 
-export interface IWsMessage<T extends {}> {
-  event: ACTIONS | ACTIONS_TO_CLIENT;
-  uuid: string;
+export type ActionTypes = ACTIONS | ACTIONS_TO_CLIENT;
+export interface IWsData<T extends {}> {
+  uuid?: string;
   payload?: T;
   to?: RequireOnlyOne<ITargetWs, 'userId' | 'groups' | 'gameId'>;
   from?: number;
+}
+
+export interface IWsMessage<T> {
+  event: ActionTypes;
+  data: IWsData<T>;
 }
 
 export interface ModifyWebSocket extends WebSocket, ITargetWs, IUserRoles {}
@@ -26,6 +31,8 @@ export const enum ACTIONS {
   TEST = 'TEST',
   ERROR = 'ERROR',
   CONNECTION = 'CONNECTION',
+  AUTHENTICATED = 'AUTHENTICATED',
+  LOGOUT = 'LOGOUT',
   SEND_MSG = 'SEND_MSG',
   CREATE_NEW_GAME = 'CREATE_NEW_GAME',
   START_GAME = 'START_GAME',

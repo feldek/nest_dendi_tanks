@@ -1,12 +1,15 @@
+require('dotenv').config();
 import { v4 as uuidv4 } from 'uuid';
-import { ACTIONS, ACTIONS_TO_CLIENT, IWsMessage } from 'src/interfaces/ws';
+import { ACTIONS, ACTIONS_TO_CLIENT, ActionTypes, IWsData } from 'src/interfaces/ws';
 import WebSocket from 'ws';
 import readline from 'readline';
+import { JwtService } from '@nestjs/jwt';
+import { ROLES } from 'src/constants';
 
 const SECRET_TEST_TOKEN = 'c8dcbb8c-ee30-11ec-8ea0-0242ac120002';
 
 let gameId = 1;
-const userIds = [42, 46];
+const userIds = [1, 46];
 class WsClient {
   public users: { connection: WebSocket; userId: number }[] = [];
 
@@ -48,9 +51,7 @@ class WsClient {
 
   // from - userId who send message
   // to   - userId/groups array who accept message
-  public publish<T>(message: IWsMessage<T>, from: number) {
-    const { event, ...data } = message;
-
+  public publish<T>(event: ActionTypes, message: IWsData<T>, from: number) {
     if (!from) {
       console.error(`this user: ${from} do not have ws connect`);
       return;
@@ -59,7 +60,7 @@ class WsClient {
     const user = this.findUser(from);
 
     if (user) {
-      user.connection.send(JSON.stringify({ event: message.event, data }));
+      user.connection.send(JSON.stringify({ event, data: message }));
     } else {
       console.log(`userId: ${message?.to} does not exist online`);
     }
@@ -92,21 +93,32 @@ class WsClient {
         key.name === 'right'
       ) {
         this.publish(
+          ACTIONS.TANK_MOVEMENT,
           {
-            event: ACTIONS.TANK_MOVEMENT,
             uuid: uuidv4(),
             payload: { direction: key.name },
           },
           userIds[0],
         );
       } else if (key.name === 'space') {
-        this.publish({ event: ACTIONS.TANK_SHOT, uuid: uuidv4() }, userIds[0]);
+        this.publish(ACTIONS.TANK_SHOT, { uuid: uuidv4() }, userIds[0]);
       }
     });
   }
 }
 
 export const wsClient = new WsClient();
+
+const jwtService = new JwtService({
+  secret: process.env.ACCESS_PRIVATE_KEY,
+  signOptions: {
+    expiresIn: '3h',
+  },
+});
+
+const tokenUser1 = jwtService.sign({ userId: userIds[0] , userRoles: [ROLES.USER] });
+
+console.log(tokenUser1);
 
 (async () => {
   try {
@@ -115,30 +127,38 @@ export const wsClient = new WsClient();
     // await wsClient.connect(3);
 
     await new Promise((resolve) => {
-      setTimeout(() => resolve(''), 500);
+      setTimeout(() => resolve(''), 300);
     });
 
-    await wsClient.publish(
+    wsClient.publish(
+      ACTIONS.AUTHENTICATED,
       {
-        //@ts-ignore
-        event: 'TEST',
         uuid: uuidv4(),
-        // email: 'oneTestgmail.com',
-        // password: '456789A',
-        // userName: 'test',
+        payload: { token: tokenUser1 },
+      },
+      userIds[0],
+    );
+
+    await new Promise((resolve) => {
+      setTimeout(() => resolve(''), 300);
+    });
+
+    wsClient.publish(
+      ACTIONS.TEST,
+      {
+        uuid: uuidv4(),
         payload: {
           email: 'oneTest@gmail.com',
           password: 'testPassword',
-          // lol: 'qwe',
         },
       },
       userIds[0],
     );
     return;
-    await wsClient.publish(
+    wsClient.publish(
+      ACTIONS.CREATE_NEW_GAME,
       {
         // to: { userId: ['group_test'] },
-        event: ACTIONS.CREATE_NEW_GAME,
         uuid: uuidv4(),
         payload: {
           // userId: userIds[0],
@@ -152,16 +172,16 @@ export const wsClient = new WsClient();
       },
       userIds[0],
     );
-    await wsClient.publish(
+    wsClient.publish(
+      ACTIONS.GET_NOT_STARTED_GAMES,
       {
-        event: ACTIONS.GET_NOT_STARTED_GAMES,
         uuid: uuidv4(),
       },
       userIds[1],
     );
 
     // return;
-    // await wsClient.publish(
+    // wsClient.publish(
     //   {
     //     event: ACTIONS.JOIN_TO_GAME,
     //     uuid: uuidv4(),
@@ -181,21 +201,14 @@ export const wsClient = new WsClient();
     //   setTimeout(() => resolve(''), 1000);
     // });
 
-    await wsClient.publish(
-      {
-        event: ACTIONS.START_GAME,
-        uuid: uuidv4(),
-        payload: { gameId },
-      },
-      userIds[0],
-    );
+    wsClient.publish(ACTIONS.START_GAME, { uuid: uuidv4(), payload: { gameId } }, userIds[0]);
 
     wsClient.readKeyboard();
 
     // await new Promise((resolve) => {
     //   setTimeout(() => resolve(''), 10 * 1000);
     // });
-    // await wsClient.publish(
+    // wsClient.publish(
     //   {
     //     event: ACTIONS.FORCE_END_GAME,
     //     uuid: uuidv4(),
