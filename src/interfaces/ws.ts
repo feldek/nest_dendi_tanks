@@ -1,6 +1,8 @@
-import { RequireOnlyOne } from './common';
+import { RequiredField, RequireOnlyOne } from './common';
 import { WebSocket } from 'ws';
 import { ROLES } from 'src/constants';
+import { ITankClass, TTankControl } from 'src/ws/game/tank/tank.class';
+import { TGameId } from 'src/ws/game/game-sessions.class';
 
 interface ITargetWs {
   userId: number | null;
@@ -12,27 +14,49 @@ interface IUserRoles {
   userRoles: ROLES[];
 }
 
-export type ActionTypes = ACTIONS | ACTIONS_TO_CLIENT;
-export interface IWsData<T extends {}> {
+export type ToType = RequireOnlyOne<
+  //broadcast - send all users
+  ITargetWs & { broadcast: boolean },
+  'userId' | 'groups' | 'gameId' | 'broadcast'
+>;
+
+export type ActionTypes = GAME_ACTIONS | CLIENT_ACTIONS | SERVER_ACTIONS;
+export interface IWsData<
+  P extends { [key: string | number]: any },
+  T extends ToType = { gameId: ITargetWs['gameId'] },
+  F extends { userId: number } = { userId: number },
+> {
   uuid?: string;
-  payload?: T;
-  to?: RequireOnlyOne<ITargetWs, 'userId' | 'groups' | 'gameId'>;
-  from?: number;
+  payload?: P;
+  to?: T;
+  from?: F;
 }
+
+export type IRequiredTo<
+  P extends { [key: string | number]: any } = {},
+  T extends ToType = { gameId: ITargetWs['gameId'] },
+  F extends { userId: number } = { userId: number },
+> = RequiredField<IWsData<P, T, F>, 'to'>;
+
+export type IRequiredToFrom<
+  P extends { [key: string | number]: any } = {},
+  T extends ToType = { gameId: ITargetWs['gameId'] },
+  F extends { userId: number } = { userId: number },
+> = RequiredField<IWsData<P, T, F>, 'to' | 'from'>;
 
 export interface IWsMessage<T> {
   event: ActionTypes;
   data: IWsData<T>;
 }
 
-export interface ModifyWebSocket extends WebSocket, ITargetWs, IUserRoles {}
+export interface ModifyWebSocket extends WebSocket, ITargetWs, IUserRoles {
+  isGameHost: boolean;
+}
 
-export const enum ACTIONS {
+export const enum GAME_ACTIONS {
   TEST = 'TEST',
   ERROR = 'ERROR',
   CONNECTION = 'CONNECTION',
-  AUTHENTICATED = 'AUTHENTICATED',
-  LOGOUT = 'LOGOUT',
   SEND_MSG = 'SEND_MSG',
   CREATE_NEW_GAME = 'CREATE_NEW_GAME',
   START_GAME = 'START_GAME',
@@ -44,8 +68,35 @@ export const enum ACTIONS {
   TANK_SHOT = 'TANK_SHOT',
 }
 
-export const enum ACTIONS_TO_CLIENT {
-  SET_GAME_ID = 'SET_GAME_ID',
-  SET_NOT_STARTED_GAMES = 'SET_NOT_STARTED_GAMES',
+export const enum CLIENT_ACTIONS {
+  AUTHENTICATED = 'AUTHENTICATED',
+  LOGOUT = 'LOGOUT',
+  ERROR = 'ERROR',
+  JOIN_TO_GAME = 'JOIN_TO_GAME',
+  CREATE_NEW_GAME = 'CREATE_NEW_GAME',
+  USER_JOIN_TO_GAME = 'USER_JOIN_TO_GAME',
   SET_GAME_DATA = 'SET_GAME_DATA',
+  GAME_SNAPSHOT = 'GAME_SNAPSHOT',
+  END_GAME = 'END_GAME',
+}
+
+export const enum SERVER_ACTIONS {
+  ERROR = 'ERROR',
+  START_GAME = 'START_GAME',
+  CREATE_NEW_GAME = 'CREATE_NEW_GAME',
+  JOIN_TO_GAME = 'JOIN_TO_GAME',
+  LEAVE_GAME = 'LEAVE_GAME',
+  FORCE_END_GAME = 'FORCE_END_GAME',
+  GAME_SNAPSHOT = 'GAME_SNAPSHOT',
+  END_GAME = 'END_GAME',
+}
+
+export interface ISchema {
+  [GAME_ACTIONS.TEST]: { email: string; password: string };
+  [GAME_ACTIONS.CREATE_NEW_GAME]: Omit<ITankClass, 'userId'>;
+  [GAME_ACTIONS.JOIN_TO_GAME]: Omit<ITankClass, 'userId'> & { gameId: TGameId };
+  [GAME_ACTIONS.FORCE_END_GAME]: { gameId: TGameId };
+  [GAME_ACTIONS.TANK_MOVEMENT]: TTankControl;
+
+  [CLIENT_ACTIONS.AUTHENTICATED]: { token: string };
 }

@@ -15,10 +15,11 @@ export class JoiValidationPipe implements PipeTransform {
 
   transform(value: IWsData<any>, _metadata: ArgumentMetadata) {
     //check payload field for ws message
-    const { error } = this.schema.validate(value.payload);
+    const { error, value: joiValue } = this.schema.validate(value.payload);
     if (error) {
       throw new BadRequestException(error.message);
     }
+    value.payload = joiValue;
     return value;
   }
 }

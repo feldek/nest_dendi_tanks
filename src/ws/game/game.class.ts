@@ -1,10 +1,12 @@
 import { IntervalTimer } from './common/interval.class';
 import { ITankClass, TankClass } from './tank/tank.class';
-import { scatter, bg, fg } from 'ervy';
 import { DELTA_T } from '../../constants';
 import { MissilesClass } from './missiles/missiles.class';
 import { MapClass } from './map/map.class';
-import { ACTIONS_TO_CLIENT } from 'src/interfaces/ws';
+import { CLIENT_ACTIONS, SERVER_ACTIONS } from 'src/interfaces/ws';
+import { IClientAction } from '../gateway/actions/client-actions';
+import { WsController } from '../ws.controller';
+import { IServerAction } from '../gateway/actions/server-actions';
 
 //where key - userId
 export type GameTanksConstructor = ITankClass[];
@@ -17,8 +19,10 @@ export class GameClass {
   missiles: MissilesClass[];
   gameState: IntervalTimer;
   gameStarted: boolean = false;
+  propagateClientEvent: InstanceType<typeof WsController>['propagateClientEvent'] | null = null;
+  propagateServerEvent: InstanceType<typeof WsController>['propagateServerEvent'] | null = null;
 
-  constructor(tanks: ITankClass[], map: MapClass) {
+  constructor(tanks: ITankClass[], map: MapClass, readonly gameId: number) {
     const tankInstances: TGameTanks = {};
     tanks.forEach((tank) => {
       tankInstances[tank.userId] = new TankClass(tank, this.checkEndGame.bind(this));
@@ -29,49 +33,6 @@ export class GameClass {
     this.map = map;
     this.missiles = [];
     this.gameState = new IntervalTimer(() => this.calculateOneStep(), DELTA_T * 1000);
-  }
-
-  showInConsole() {
-    const user1 = {
-      key: 'A',
-      value: [
-        Math.round(this.tanks[this.userIds[0]].x / 10),
-        Math.round(this.tanks[this.userIds[0]].y / 10),
-      ],
-      style: bg('cyan', 2),
-      // sides: [1, 1],
-    };
-    // const user2 = {
-    //   key: 'B',
-    //   value: [
-    //     Math.round(this.tanks[this.userIds[1]].x / 10),
-    //     Math.round(this.tanks[this.userIds[1]].y / 10),
-    //   ],
-    //   style: bg('red', 2),
-    // };
-
-    const landscape = this.map.blocks.map(({ x, y }) => ({
-      key: 'C',
-      value: [Math.round(x / 10), Math.round(y / 10)],
-      style: bg('magenta', 2),
-    }));
-    const missiles = this.missiles.map((missile) => ({
-      key: 'D',
-      value: [Math.round(missile.x / 10), Math.round(missile.y / 10)],
-      style: fg('blue', '*'),
-    }));
-
-    const renderObj = landscape.concat(missiles);
-    renderObj.push(user1);
-    // renderObj.push(user2);
-
-    console.log(
-      scatter(renderObj, {
-        legendGap: 0,
-        width: this.map.size.x / 10,
-        height: this.map.size.y / 10,
-      }),
-    );
   }
 
   calculateOneStep() {
@@ -118,55 +79,69 @@ export class GameClass {
 
     // this.showInConsole();
 
-    const tanksData = Object.values(this.tanks).map(({ x, y, currentArmor, direction }) => ({
-      x,
-      y,
-      currentArmor,
-      direction,
+    const tanksData = Object.values(this.tanks).map((tank) => ({
+      x: tank.x,
+      y: tank.y,
+      currentArmor: tank.currentArmor,
+      direction: tank.direction,
+      userId: tank.userId,
+      teamId: tank.teamId,
     }));
 
-    Object.values(this.tanks).forEach(({ ws }) => {
-      ws.send(
-        JSON.stringify({
-          event: ACTIONS_TO_CLIENT.SET_GAME_DATA,
-          data: {
-            payload: {
-              missiles: this.missiles,
-              tanks: tanksData,
-            },
-          },
-        }),
-      );
-    });
+    this.propagateClientEvent<IClientAction[CLIENT_ACTIONS.GAME_SNAPSHOT]>(
+      CLIENT_ACTIONS.GAME_SNAPSHOT,
+      {
+        to: { gameId: this.gameId },
+        payload: {
+          tanks: tanksData,
+          missiles: this.missiles,
+        },
+      },
+    );
   }
 
   checkEndGame() {
-    const lifeTanks = new Set();
+    const lifeTeams = new Set();
 
     Object.values(this.tanks).forEach((tank) => {
       if (tank.currentArmor > 0) {
-        lifeTanks.add(tank.teamId);
+        lifeTeams.add(tank.teamId);
       }
     });
 
-    if (lifeTanks.size === 1) {
+    if (lifeTeams.size === 1) {
+      const teamWin = lifeTeams.values().next().value;
       console.log('End Game');
-      console.log(`Team ${lifeTanks.values().next().value} win`);
+      console.log(`Team ${teamWin} win`);
 
       this.endGame();
+
+      this.propagateClientEvent<IClientAction[CLIENT_ACTIONS.END_GAME]>(CLIENT_ACTIONS.END_GAME, {
+        to: { gameId: this.gameId },
+        payload: {
+          message: `Team ${teamWin} win`,
+          teamWin,
+        },
+      });
+
+      this.propagateServerEvent<IServerAction[SERVER_ACTIONS.END_GAME]>(SERVER_ACTIONS.END_GAME, {
+        to: { gameId: this.gameId },
+      });
     }
   }
 
-  startGame() {
+  startGame(
+    propagateClientEvent: typeof this.propagateClientEvent,
+    propagateServerEvent: typeof this.propagateServerEvent,
+  ) {
+    this.propagateClientEvent = propagateClientEvent;
+    this.propagateServerEvent = propagateServerEvent;
     this.gameState.start();
     this.gameStarted = true;
   }
 
   endGame() {
     this.gameState.clear();
-    Object.keys(this.tanks).forEach((userId) => {
-      this.tanks[+userId].ws.gameId = null;
-    });
   }
 
   pauseOnOff() {
