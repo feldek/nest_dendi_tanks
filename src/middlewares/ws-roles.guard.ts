@@ -1,4 +1,4 @@
-import { WsController } from './../ws/ws.controller';
+import { WsController } from '../ws/ws.controller';
 import {
   applyDecorators,
   CanActivate,
@@ -12,7 +12,6 @@ import { intersection, isEmpty } from 'lodash';
 import { Observable } from 'rxjs';
 import { ROLES } from 'src/constants';
 import { ModifyWebSocket } from 'src/interfaces/ws';
-import { WsGateway } from 'src/ws/ws.gateway';
 
 @Injectable()
 class WsRole implements CanActivate {

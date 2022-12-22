@@ -1,3 +1,4 @@
+import { REDIS_NAMESPACE } from 'src/constants/redis.constants';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SequelizeModule } from '@nestjs/sequelize';
@@ -8,6 +9,7 @@ import { UsersModule } from 'src/controllers/users/users.module';
 import { RolesModule } from 'src/controllers/roles/roles.module';
 import { AuthModule } from 'src/controllers/auth/auth.module';
 import { WSModule } from './ws/ws.module';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 @Module({
   controllers: [],
@@ -31,6 +33,21 @@ import { WSModule } from './ws/ws.module';
         idle: 10000,
       },
       // logging: true,
+    }),
+    RedisModule.forRoot({
+      config: [
+        {
+          host: '180.28.1.4',
+          port: 6379,
+          namespace: REDIS_NAMESPACE.PUBLISH,
+        },
+
+        {
+          host: '180.28.1.4',
+          port: 6379,
+          namespace: REDIS_NAMESPACE.SUBSCRIBE,
+        },
+      ],
     }),
     UsersModule,
     RolesModule,

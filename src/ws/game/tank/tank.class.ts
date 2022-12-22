@@ -4,7 +4,6 @@ import { DynamicObjClass, IDynamicObj } from '../common/dynamicObj.class';
 import { WeaponClass } from './weapon.class';
 import { RADIUS } from 'src/constants/game.constants';
 import { MissilesClass } from '../missiles/missiles.class';
-import { ModifyWebSocket } from 'src/interfaces/ws';
 
 export type tankActionType = 'stay' | 'move' | 'hold';
 export type TTankControl = RequireAtLeastOne<
@@ -13,7 +12,6 @@ export type TTankControl = RequireAtLeastOne<
 >;
 
 export interface ITankClass extends IDynamicObj {
-  ws: ModifyWebSocket;
   userId: number;
   teamId: string;
   state?: tankActionType;
@@ -22,7 +20,6 @@ export interface ITankClass extends IDynamicObj {
 }
 
 export class TankClass extends DynamicObjClass {
-  public ws: ModifyWebSocket;
   public userId?: number;
   public teamId: string;
   public state: tankActionType;
@@ -41,7 +38,6 @@ export class TankClass extends DynamicObjClass {
     this.weapon = weapon ?? new WeaponClass();
     this.userId = tank?.userId;
     this.teamId = tank.teamId;
-    this.ws = tank.ws;
 
     //each times when some tank currentArmor set <0, check if the game is over
     return new Proxy(this, {

@@ -9,3 +9,26 @@ services:
       - POSTGRES_DB={DB_SCHEMA}
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+
+  redis-game:
+    image: 'redis:alpine'
+    restart: always
+    # command: redis-server --requirepass redis_password
+    ports:
+      - '6380:6380'
+    volumes:
+      - $PWD/redis-data:/var/lib/redis
+        # - $PWD/redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    networks:
+      node_net:
+        ipv4_address: 180.28.1.4
+
+networks:
+  # networking for the Redis container
+  node_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 180.28.0.0/16
