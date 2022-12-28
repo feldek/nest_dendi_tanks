@@ -1,4 +1,3 @@
-import { WsController } from '../ws/ws.controller';
 import {
   applyDecorators,
   CanActivate,
@@ -11,7 +10,7 @@ import { Reflector } from '@nestjs/core';
 import { intersection, isEmpty } from 'lodash';
 import { Observable } from 'rxjs';
 import { ROLES } from 'src/constants';
-import { ModifyWebSocket } from 'src/interfaces/ws';
+import { ActionTypes, ModifyWebSocket } from 'src/interfaces/ws';
 
 @Injectable()
 class WsRole implements CanActivate {
@@ -19,14 +18,25 @@ class WsRole implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
     const roles = this.reflector.get<ROLES[]>('roles', context.getHandler());
-    const request: ModifyWebSocket = context.switchToWs().getClient();
+    const client: ModifyWebSocket = context.switchToWs().getClient();
 
-    const isWrongPermissions = isEmpty(intersection(request.userRoles, roles));
+    const isWrongPermissions = isEmpty(intersection(client.userRoles, roles));
 
     if (isWrongPermissions) {
-      WsController.sendError(request, {
-        message: 'You do not have necessary permissions',
-        status: 401,
+      const event = Reflect.getMetadata(
+        'message',
+        (context.switchToWs() as any).handler,
+      ) as ActionTypes;
+
+      const payload = context.switchToWs().getData();
+
+      client.sendError({
+        event,
+        payload: {
+          message: 'You do not have necessary permissions',
+          status: 401,
+        },
+        uuid: payload?.uuid,
       });
 
       return false;

@@ -33,6 +33,8 @@ const launchFile = async () => {
       },
       testUserIds[0],
     );
+
+    // return
     wsClient.publish(
       CLIENT_ACTIONS.AUTHENTICATED,
       {
@@ -41,23 +43,12 @@ const launchFile = async () => {
       },
       testUserIds[1],
     );
-    // return;
+    // return
+
     await new Promise((resolve) => {
       setTimeout(() => resolve(''), 300);
     });
 
-    // wsClient.publish(
-    //   ACTIONS.TEST,
-    //   {
-    //     uuid: uuidv4(),
-    //     payload: {
-    //       email: 'oneTest@gmail.com',
-    //       password: 'testPassword',
-    //     },
-    //   },
-    //   testUserIds[0],
-    // );
-    // return;
     wsClient.publish(
       GAME_ACTIONS.CREATE_NEW_GAME,
       {
@@ -70,7 +61,7 @@ const launchFile = async () => {
       testUserIds[0],
     );
     await new Promise((resolve) => {
-      setTimeout(() => resolve(''), 100);
+      setTimeout(() => resolve(''), 300);
     });
     // return;
     wsClient.publish(
@@ -81,7 +72,7 @@ const launchFile = async () => {
       testUserIds[1],
     );
     await new Promise((resolve) => {
-      setTimeout(() => resolve(''), 100);
+      setTimeout(() => resolve(''), 300);
     });
     // return;
 
@@ -98,6 +89,7 @@ const launchFile = async () => {
       setTimeout(() => resolve(''), 300);
     });
 
+    // return
     wsClient.publish(
       GAME_ACTIONS.START_GAME,
       {
@@ -106,22 +98,30 @@ const launchFile = async () => {
       testUserIds[0],
     );
 
-    return;
+    // return;
     await new Promise((resolve) => {
-      setTimeout(() => resolve(''), 5 * 1000);
+      setTimeout(() => resolve(''), 1 * 1000);
     });
     // wsClient.readKeyboard();
 
     // await new Promise((resolve) => {
     //   setTimeout(() => resolve(''), 10 * 1000);
     // });
-    wsClient.publish(GAME_ACTIONS.PAUSE_GAME, { uuid: uuidv4() }, testUserIds[0]);
+    wsClient.publish(
+      GAME_ACTIONS.PAUSE_GAME,
+      { uuid: uuidv4(), payload: { pause: true } },
+      testUserIds[0],
+    );
 
     await new Promise((resolve) => {
       setTimeout(() => resolve(''), 5 * 1000);
     });
 
-    wsClient.publish(GAME_ACTIONS.PAUSE_GAME, { uuid: uuidv4() }, testUserIds[0]);
+    wsClient.publish(
+      GAME_ACTIONS.PAUSE_GAME,
+      { uuid: uuidv4(), payload: { pause: false } },
+      testUserIds[0],
+    );
     // wsClient.publish(
     //   {
     //     event: ACTIONS.FORCE_END_GAME,

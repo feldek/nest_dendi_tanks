@@ -1,3 +1,4 @@
+import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { RequiredField, RequireOnlyOne } from './common';
 import { WebSocket } from 'ws';
 import { ROLES } from 'src/constants';
@@ -19,10 +20,11 @@ export type ToType = RequireOnlyOne<
   ITargetWs & { broadcast: boolean },
   'userId' | 'groups' | 'gameId' | 'broadcast'
 >;
-
 export type ActionTypes = GAME_ACTIONS | CLIENT_ACTIONS | SERVER_ACTIONS;
+
+type PayloadType = { [key: string | number]: any };
 export interface IWsData<
-  P extends { [key: string | number]: any },
+  P extends PayloadType,
   T extends ToType = { gameId: ITargetWs['gameId'] },
   F extends { userId: number } = { userId: number },
 > {
@@ -33,16 +35,20 @@ export interface IWsData<
 }
 
 export type IRequiredTo<
-  P extends { [key: string | number]: any } = {},
+  P extends PayloadType | void = void,
   T extends ToType = { gameId: ITargetWs['gameId'] },
   F extends { userId: number } = { userId: number },
-> = RequiredField<IWsData<P, T, F>, 'to'>;
+> = P extends PayloadType
+  ? RequiredField<IWsData<P, T, F>, 'to' | 'payload'>
+  : RequiredField<IWsData<{}, T, F>, 'to'>;
 
 export type IRequiredToFrom<
-  P extends { [key: string | number]: any } = {},
+  P extends PayloadType | void = void,
   T extends ToType = { gameId: ITargetWs['gameId'] },
   F extends { userId: number } = { userId: number },
-> = RequiredField<IWsData<P, T, F>, 'to' | 'from'>;
+> = P extends PayloadType
+  ? RequiredField<IWsData<P, T, F>, 'to' | 'from' | 'payload'>
+  : RequiredField<IWsData<{}, T, F>, 'to' | 'from'>;
 
 export interface IWsMessage<T> {
   event: ActionTypes;
@@ -51,6 +57,8 @@ export interface IWsMessage<T> {
 
 export interface ModifyWebSocket extends WebSocket, ITargetWs, IUserRoles {
   isGameHost: boolean;
+
+  sendError: (data: WsErrorType) => void;
 }
 
 export const enum GAME_ACTIONS {
@@ -61,7 +69,7 @@ export const enum GAME_ACTIONS {
   CREATE_NEW_GAME = 'CREATE_NEW_GAME',
   START_GAME = 'START_GAME',
   PAUSE_GAME = 'PAUSE_GAME',
-  JOIN_TO_GAME = 'JOIN_TO_GAME',
+  JOIN_TO_GAME = 'JOIN_TO_GAME1',
   FORCE_END_GAME = 'FORCE_END_GAME',
   GET_NOT_STARTED_GAMES = 'GET_NOT_STARTED_GAMES',
   TANK_MOVEMENT = 'TANK_MOVEMENT',
@@ -74,6 +82,7 @@ export const enum CLIENT_ACTIONS {
   ERROR = 'ERROR',
   JOIN_TO_GAME = 'JOIN_TO_GAME',
   CREATE_NEW_GAME = 'CREATE_NEW_GAME',
+  PAUSE_GAME = 'PAUSE_GAME',
   USER_JOIN_TO_GAME = 'USER_JOIN_TO_GAME',
   SET_GAME_DATA = 'SET_GAME_DATA',
   GAME_SNAPSHOT = 'GAME_SNAPSHOT',
@@ -97,6 +106,7 @@ export interface ISchema {
   [GAME_ACTIONS.JOIN_TO_GAME]: Omit<ITankClass, 'userId'> & { gameId: TGameId };
   [GAME_ACTIONS.FORCE_END_GAME]: { gameId: TGameId };
   [GAME_ACTIONS.TANK_MOVEMENT]: TTankControl;
+  [GAME_ACTIONS.PAUSE_GAME]: { pause: boolean };
 
   [CLIENT_ACTIONS.AUTHENTICATED]: { token: string };
 }

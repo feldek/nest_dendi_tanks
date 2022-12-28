@@ -1,7 +1,5 @@
 import Joi from 'joi';
 import { CLIENT_ACTIONS, GAME_ACTIONS, ISchema } from 'src/interfaces/ws';
-import { TGameId } from '../game/game-sessions.class';
-import { ITankClass, TTankControl } from '../game/tank/tank.class';
 
 const defaultState = {
   tank: {
@@ -42,5 +40,8 @@ export const joiSchema = {
   [GAME_ACTIONS.TANK_MOVEMENT]: Joi.object<ISchema[GAME_ACTIONS.TANK_MOVEMENT]>({
     state: Joi.string().valid('stay', 'move', 'hold').example('stay'),
     direction: Joi.string().valid('right', 'left', 'up', 'down').example('up'),
+  }),
+  [GAME_ACTIONS.PAUSE_GAME]: Joi.object<ISchema[GAME_ACTIONS.PAUSE_GAME]>({
+    pause: Joi.boolean().required().example(false),
   }),
 };

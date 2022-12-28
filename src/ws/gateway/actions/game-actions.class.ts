@@ -17,7 +17,7 @@ import { IServerAction } from './server-actions';
 
 export interface IGameAction {
   [GAME_ACTIONS.JOIN_TO_GAME]: IRequiredToFrom<ISchema[GAME_ACTIONS.JOIN_TO_GAME]>;
-  [GAME_ACTIONS.PAUSE_GAME]: IRequiredTo;
+  [GAME_ACTIONS.PAUSE_GAME]: IRequiredTo<ISchema[GAME_ACTIONS.PAUSE_GAME]>;
   [GAME_ACTIONS.FORCE_END_GAME]: IRequiredTo;
   [GAME_ACTIONS.TANK_SHOT]: IRequiredToFrom;
   [GAME_ACTIONS.TANK_MOVEMENT]: IRequiredToFrom<TTankControl>;
@@ -37,7 +37,8 @@ class GameActionsClass extends GameSessionsClass {
     const game = gameActions[gameId];
 
     if (game.gameStarted) {
-      wsServer.propagateClientEvent(CLIENT_ACTIONS.ERROR, {
+      wsServer.propagateClientError(CLIENT_ACTIONS.ERROR, {
+        event: GAME_ACTIONS.JOIN_TO_GAME,
         to: { userId },
         uuid: data.uuid,
         payload: {
@@ -76,9 +77,17 @@ class GameActionsClass extends GameSessionsClass {
     );
   }
 
-  [GAME_ACTIONS.PAUSE_GAME](_wsServer: WsController, data: IGameAction[GAME_ACTIONS.PAUSE_GAME]) {
+  [GAME_ACTIONS.PAUSE_GAME](wsServer: WsController, data: IGameAction[GAME_ACTIONS.PAUSE_GAME]) {
     const game = gameActions[data.to.gameId];
-    game.pauseOnOff();
+    const pause = data.payload.pause;
+    const changedGameState = game.pauseOnOff(pause);
+
+    if (changedGameState) {
+      wsServer.propagateClientEvent<IClientAction[CLIENT_ACTIONS.PAUSE_GAME]>(
+        CLIENT_ACTIONS.PAUSE_GAME,
+        { to: { gameId: data.to.gameId }, payload: { pause } },
+      );
+    }
   }
 
   [GAME_ACTIONS.FORCE_END_GAME](

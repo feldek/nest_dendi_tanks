@@ -6,13 +6,10 @@ export type TGameId = number;
 export class GameSessionsClass {
   //TODO: temporary solution, in future move to db
   //save info about all gameIds on other node instances too
-  allGames: { gameId: number; started: boolean; userIds: number[] }[] = [];
   [key: TGameId]: GameClass;
 
-  createNewGame(sessions: { tanks: ITankClass[]; map: MapClass }) {
+  createNewGame(sessions: { tanks: ITankClass[]; map: MapClass }, gameId: number) {
     const { tanks, map } = sessions;
-    const gameId = this.getNewSessionId();
-    // this.allGameIds.push(gameId);
     this[gameId] = new GameClass(tanks, map, gameId);
     return gameId;
   }
@@ -26,16 +23,7 @@ export class GameSessionsClass {
     this[gameId].userIds.push(tank.userId);
   }
 
-  getAllNonStartedGames() {
-    return this.allGames;
-  }
-
-  private getNewSessionId() {
-    const gameIds = this.allGames.map(({ gameId }) => gameId);
-    return gameIds.length ? Math.max(...gameIds) + 1 : 1;
-  }
-
-  removeSessionById(currentGameId: number) {
+  removeGameById(currentGameId: number) {
     if (this[currentGameId]) {
       delete this[currentGameId];
     }
