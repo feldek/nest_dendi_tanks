@@ -144,11 +144,13 @@ export class GameClass {
     this.gameState.clear();
   }
 
-  pauseOnOff() {
-    if (this.gameState.paused) {
-      return this.gameState.resume();
+  pauseOnOff(pause: boolean) {
+    if (this.gameState.paused && !pause) {
+      this.gameState.resume();
+      return true;
+    } else if (!this.gameState.paused && pause) {
+      this.gameState.pause();
+      return true;
     }
-
-    this.gameState.pause();
   }
 }

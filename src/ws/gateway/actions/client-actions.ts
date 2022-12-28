@@ -1,10 +1,18 @@
-import { ToType, IRequiredTo, CLIENT_ACTIONS, IWsData } from 'src/interfaces/ws';
+import { RequiredField } from 'src/interfaces/common';
+import {
+  ToType,
+  IRequiredTo,
+  CLIENT_ACTIONS,
+  ISchema,
+  GAME_ACTIONS,
+} from 'src/interfaces/ws';
+import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { directionType } from 'src/ws/game/common/dynamicObj.class';
 import { MissilesClass } from 'src/ws/game/missiles/missiles.class';
 import { WsController } from '../../ws.controller';
 
 export interface IClientAction {
-  [CLIENT_ACTIONS.ERROR]: IRequiredTo<{ message: string; status?: number }, ToType>;
+  [CLIENT_ACTIONS.ERROR]: RequiredField<WsErrorType, 'to' | 'payload'>;
   [CLIENT_ACTIONS.JOIN_TO_GAME]: IRequiredTo<{ gameId: number; message: string }, ToType>;
   [CLIENT_ACTIONS.GAME_SNAPSHOT]: IRequiredTo<{
     tanks: {
@@ -18,6 +26,7 @@ export interface IClientAction {
     missiles: MissilesClass[];
   }>;
   [CLIENT_ACTIONS.END_GAME]: IRequiredTo<{ message: string; teamWin: string }>;
+  [CLIENT_ACTIONS.PAUSE_GAME]: IRequiredTo<ISchema[GAME_ACTIONS.PAUSE_GAME]>;
 }
 
 // needed to inform all node instances about event
@@ -30,6 +39,12 @@ export const clientActions = {
     wsServer: WsController,
     data: IClientAction[CLIENT_ACTIONS.JOIN_TO_GAME],
   ) => {
+    const [client] = wsServer.getWsClients({ userId: data.from.userId });
+
+    if (!client) {
+      return;
+    }
+    client.gameId = data.payload.gameId;
     wsServer.sendToClient(CLIENT_ACTIONS.JOIN_TO_GAME, data);
   },
 
@@ -38,6 +53,13 @@ export const clientActions = {
     data: IClientAction[CLIENT_ACTIONS.GAME_SNAPSHOT],
   ) => {
     wsServer.sendToClient(CLIENT_ACTIONS.GAME_SNAPSHOT, data);
+  },
+
+  [CLIENT_ACTIONS.PAUSE_GAME]: (
+    wsServer: WsController,
+    data: IClientAction[CLIENT_ACTIONS.PAUSE_GAME],
+  ) => {
+    wsServer.sendToClient(CLIENT_ACTIONS.PAUSE_GAME, data);
   },
 
   [CLIENT_ACTIONS.END_GAME]: (
