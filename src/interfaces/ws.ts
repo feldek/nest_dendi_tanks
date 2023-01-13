@@ -20,11 +20,12 @@ export type ToType = RequireOnlyOne<
   ITargetWs & { broadcast: boolean },
   'userId' | 'groups' | 'gameId' | 'broadcast'
 >;
-export type ActionTypes = GAME_ACTIONS | CLIENT_ACTIONS | SERVER_ACTIONS;
+export type ActionTypes = GAME_ACTIONS | CLIENT_ACTIONS | SERVER_ACTIONS | LOAD_IMAGE;
 
 type PayloadType = { [key: string | number]: any };
-export interface IWsData<
-  P extends PayloadType,
+
+interface IDataTest<
+  P extends PayloadType | void = void,
   T extends ToType = { gameId: ITargetWs['gameId'] },
   F extends { userId: number } = { userId: number },
 > {
@@ -34,13 +35,19 @@ export interface IWsData<
   from?: F;
 }
 
+export type IWsData<
+  P extends PayloadType | void = void,
+  T extends ToType = { gameId: ITargetWs['gameId'] },
+  F extends { userId: number } = { userId: number },
+> = P extends PayloadType ? RequiredField<IDataTest<P, T, F>, 'payload'> : IDataTest<void, T, F>;
+
 export type IRequiredTo<
   P extends PayloadType | void = void,
   T extends ToType = { gameId: ITargetWs['gameId'] },
   F extends { userId: number } = { userId: number },
 > = P extends PayloadType
   ? RequiredField<IWsData<P, T, F>, 'to' | 'payload'>
-  : RequiredField<IWsData<{}, T, F>, 'to'>;
+  : RequiredField<IWsData<void, T, F>, 'to'>;
 
 export type IRequiredToFrom<
   P extends PayloadType | void = void,
@@ -48,7 +55,7 @@ export type IRequiredToFrom<
   F extends { userId: number } = { userId: number },
 > = P extends PayloadType
   ? RequiredField<IWsData<P, T, F>, 'to' | 'from' | 'payload'>
-  : RequiredField<IWsData<{}, T, F>, 'to' | 'from'>;
+  : RequiredField<IWsData<void, T, F>, 'to' | 'from'>;
 
 export interface IWsMessage<T> {
   event: ActionTypes;
@@ -61,6 +68,10 @@ export interface ModifyWebSocket extends WebSocket, ITargetWs, IUserRoles {
   sendError: (data: WsErrorType) => void;
 }
 
+export const enum LOAD_IMAGE {
+  TEST = 'LOAD_IMAGE_TEST',
+}
+
 export const enum GAME_ACTIONS {
   TEST = 'TEST',
   ERROR = 'ERROR',
@@ -69,17 +80,19 @@ export const enum GAME_ACTIONS {
   CREATE_NEW_GAME = 'CREATE_NEW_GAME',
   START_GAME = 'START_GAME',
   PAUSE_GAME = 'PAUSE_GAME',
-  JOIN_TO_GAME = 'JOIN_TO_GAME1',
+  JOIN_TO_GAME = 'JOIN_TO_GAME',
   FORCE_END_GAME = 'FORCE_END_GAME',
   GET_NOT_STARTED_GAMES = 'GET_NOT_STARTED_GAMES',
   TANK_MOVEMENT = 'TANK_MOVEMENT',
   TANK_SHOT = 'TANK_SHOT',
+  END_GAME = 'END_GAME',
 }
 
 export const enum CLIENT_ACTIONS {
   AUTHENTICATED = 'AUTHENTICATED',
   LOGOUT = 'LOGOUT',
   ERROR = 'ERROR',
+  START_GAME = 'START_GAME',
   JOIN_TO_GAME = 'JOIN_TO_GAME',
   CREATE_NEW_GAME = 'CREATE_NEW_GAME',
   PAUSE_GAME = 'PAUSE_GAME',

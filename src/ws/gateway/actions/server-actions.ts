@@ -15,19 +15,19 @@ export const serverActions = {
     wsServer: WsController,
     { to: { gameId }, payload: { userId } }: IServerAction[SERVER_ACTIONS.CREATE_NEW_GAME],
   ) => {
-    wsServer.createNewGame({ gameId, started: false, userIds: [userId] });
+    wsServer.wsGamesState.addNewGame({ gameId, started: false, userIds: [userId] });
   },
 
   [GAME_ACTIONS.START_GAME](wsServer: WsController, data: IServerAction[GAME_ACTIONS.START_GAME]) {
     const test = data.to.gameId;
-    wsServer.launchGame(test);
+    wsServer.wsGamesState.changeGameStatus(test);
   },
 
   [SERVER_ACTIONS.JOIN_TO_GAME]: (
     wsServer: WsController,
     { to: { gameId }, payload: { userId } }: IServerAction[SERVER_ACTIONS.JOIN_TO_GAME],
   ) => {
-    wsServer.addUserToGame({ gameId, userId });
+    wsServer.wsGamesState.joinUserToGame({ gameId, userId });
   },
 
   //TODO: this action not exist in game-actions
@@ -35,7 +35,7 @@ export const serverActions = {
     wsServer: WsController,
     { to: { gameId }, payload: { userId } }: IServerAction[SERVER_ACTIONS.LEAVE_GAME],
   ) => {
-    wsServer.removeUserFromGame({ gameId, userId });
+    wsServer.wsGamesState.deleteUserFromGame({ gameId, userId });
   },
 
   // [CLIENT_ACTIONS.FORCE_END_GAME]: (
@@ -54,6 +54,6 @@ export const serverActions = {
     wsServer: WsController,
     { to: { gameId } }: IServerAction[SERVER_ACTIONS.END_GAME],
   ) => {
-    wsServer.removeFromAllGames(gameId);
+    wsServer.wsGamesState.deleteGame(gameId);
   },
 };

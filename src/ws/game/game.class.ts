@@ -77,8 +77,6 @@ export class GameClass {
       return !hitToLandscape;
     });
 
-    // this.showInConsole();
-
     const tanksData = Object.values(this.tanks).map((tank) => ({
       x: tank.x,
       y: tank.y,

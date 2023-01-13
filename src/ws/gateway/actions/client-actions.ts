@@ -1,11 +1,5 @@
 import { RequiredField } from 'src/interfaces/common';
-import {
-  ToType,
-  IRequiredTo,
-  CLIENT_ACTIONS,
-  ISchema,
-  GAME_ACTIONS,
-} from 'src/interfaces/ws';
+import { ToType, IRequiredTo, CLIENT_ACTIONS, ISchema, GAME_ACTIONS } from 'src/interfaces/ws';
 import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { directionType } from 'src/ws/game/common/dynamicObj.class';
 import { MissilesClass } from 'src/ws/game/missiles/missiles.class';
@@ -14,6 +8,7 @@ import { WsController } from '../../ws.controller';
 export interface IClientAction {
   [CLIENT_ACTIONS.ERROR]: RequiredField<WsErrorType, 'to' | 'payload'>;
   [CLIENT_ACTIONS.JOIN_TO_GAME]: IRequiredTo<{ gameId: number; message: string }, ToType>;
+  [CLIENT_ACTIONS.START_GAME]: IRequiredTo;
   [CLIENT_ACTIONS.GAME_SNAPSHOT]: IRequiredTo<{
     tanks: {
       x: number;
@@ -33,6 +28,16 @@ export interface IClientAction {
 export const clientActions = {
   [CLIENT_ACTIONS.ERROR]: (wsServer: WsController, data: IClientAction[CLIENT_ACTIONS.ERROR]) => {
     wsServer.sendToClient(CLIENT_ACTIONS.ERROR, data);
+  },
+  [CLIENT_ACTIONS.START_GAME]: (
+    wsServer: WsController,
+    data: IClientAction[CLIENT_ACTIONS.START_GAME],
+  ) => {
+    const message = {
+      ...data,
+      payload: { message: `GameId ${data.to.gameId} successfully started` },
+    };
+    wsServer.sendToClient(CLIENT_ACTIONS.START_GAME, message);
   },
 
   [CLIENT_ACTIONS.JOIN_TO_GAME]: (
@@ -75,7 +80,7 @@ export const clientActions = {
     wsClients.map((client) => {
       client.gameId === null;
     });
-    
+
     wsServer.sendToClient(CLIENT_ACTIONS.END_GAME, data);
   },
 };
