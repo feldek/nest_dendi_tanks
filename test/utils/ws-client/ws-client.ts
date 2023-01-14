@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 import { v4 as uuidv4 } from 'uuid';
-import { GAME_ACTIONS, CLIENT_ACTIONS, ActionTypes, IWsData, LOAD_IMAGE } from 'src/interfaces/ws';
+import { ACTIONS, ActionTypes, IWsData } from 'src/interfaces/ws';
 import WebSocket from 'ws';
 import readline from 'readline';
 import { IClientAction } from 'src/ws/gateway/actions/client-actions';
@@ -48,7 +48,7 @@ export class WsClient {
 
       const token = jwtService.sign({ userId, userRoles: [ROLES.USER] });
 
-      this.publish(CLIENT_ACTIONS.AUTHENTICATED, {
+      this.publish(ACTIONS.AUTHENTICATED, {
         uuid: uuidv4(),
         payload: { token },
       });
@@ -63,11 +63,11 @@ export class WsClient {
         emitter.emit(uuid, wsData);
       }
 
-      if (showConsoleData && CLIENT_ACTIONS.GAME_SNAPSHOT === wsData.event) {
+      if (showConsoleData && ACTIONS.GAME_SNAPSHOT === wsData.event) {
         this.showInConsole(wsData.data.payload);
 
         return;
-      } else if (CLIENT_ACTIONS.ERROR === wsData.event) {
+      } else if (ACTIONS.ERROR === wsData.event) {
         console.log(wsData.data);
         return;
       } else {
@@ -154,14 +154,14 @@ export class WsClient {
         key.name === 'left' ||
         key.name === 'right'
       ) {
-        this.publish(GAME_ACTIONS.TANK_MOVEMENT, {
+        this.publish(ACTIONS.TANK_MOVEMENT, {
           uuid: uuidv4(),
           payload: { direction: key.name },
         });
       } else if (key.name === 'space') {
-        this.publish(GAME_ACTIONS.TANK_SHOT, { uuid: uuidv4() });
+        this.publish(ACTIONS.TANK_SHOT, { uuid: uuidv4() });
       } else if (key.name === 'ctrl') {
-        this.publish(GAME_ACTIONS.TANK_MOVEMENT, {
+        this.publish(ACTIONS.TANK_MOVEMENT, {
           uuid: uuidv4(),
           payload: { state: this.tankState === 'stay' ? 'move' : 'stay' },
         });
@@ -169,7 +169,7 @@ export class WsClient {
     });
   }
 
-  showInConsole(gameObjects: IClientAction[CLIENT_ACTIONS.GAME_SNAPSHOT]['payload']) {
+  showInConsole(gameObjects: IClientAction[ACTIONS.GAME_SNAPSHOT]['payload']) {
     if (!gameObjects.tanks[0]) {
       return;
     }

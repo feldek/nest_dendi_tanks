@@ -3,7 +3,7 @@ import { ITankClass, TankClass } from './tank/tank.class';
 import { DELTA_T } from '../../constants';
 import { MissilesClass } from './missiles/missiles.class';
 import { MapClass } from './map/map.class';
-import { CLIENT_ACTIONS, SERVER_ACTIONS } from 'src/interfaces/ws';
+import { ACTIONS } from 'src/interfaces/ws';
 import { IClientAction } from '../gateway/actions/client-actions';
 import { WsController } from '../ws.controller';
 import { IServerAction } from '../gateway/actions/server-actions';
@@ -86,16 +86,13 @@ export class GameClass {
       teamId: tank.teamId,
     }));
 
-    this.propagateClientEvent<IClientAction[CLIENT_ACTIONS.GAME_SNAPSHOT]>(
-      CLIENT_ACTIONS.GAME_SNAPSHOT,
-      {
-        to: { gameId: this.gameId },
-        payload: {
-          tanks: tanksData,
-          missiles: this.missiles,
-        },
+    this.propagateClientEvent<IClientAction[ACTIONS.GAME_SNAPSHOT]>(ACTIONS.GAME_SNAPSHOT, {
+      to: { gameId: this.gameId },
+      payload: {
+        tanks: tanksData,
+        missiles: this.missiles,
       },
-    );
+    });
   }
 
   checkEndGame() {
@@ -114,7 +111,7 @@ export class GameClass {
 
       this.endGame();
 
-      this.propagateClientEvent<IClientAction[CLIENT_ACTIONS.END_GAME]>(CLIENT_ACTIONS.END_GAME, {
+      this.propagateClientEvent<IClientAction[ACTIONS.END_GAME]>(ACTIONS.END_GAME, {
         to: { gameId: this.gameId },
         payload: {
           message: `Team ${teamWin} win`,
@@ -122,7 +119,7 @@ export class GameClass {
         },
       });
 
-      this.propagateServerEvent<IServerAction[SERVER_ACTIONS.END_GAME]>(SERVER_ACTIONS.END_GAME, {
+      this.propagateServerEvent<IServerAction[ACTIONS.END_GAME]>(ACTIONS.END_GAME, {
         to: { gameId: this.gameId },
       });
     }

@@ -1,15 +1,15 @@
-import { LOAD_IMAGE, IWsData, ModifyWebSocket } from 'src/interfaces/ws';
+import { IWsData, ModifyWebSocket, ACTIONS } from 'src/interfaces/ws';
 import { writeFile } from 'fs';
 
 export interface IWsLoadFileActions {
-  [LOAD_IMAGE.TEST]: IWsData<{ buffer: Buffer; extension: string; name: string }>;
+  [ACTIONS.LOAD_IMAGE_TEST]: IWsData<{ buffer: Buffer; extension: string; name: string }>;
 }
 
 // needed to inform all node instances about event, because he accumulate info about all games status
 export const wsLoadFileActions = {
-  [LOAD_IMAGE.TEST]: (
+  [ACTIONS.LOAD_IMAGE_TEST]: (
     client: ModifyWebSocket,
-    { payload: { buffer, extension, name }, uuid }: IWsLoadFileActions[LOAD_IMAGE.TEST],
+    { payload: { buffer, extension, name }, uuid }: IWsLoadFileActions[ACTIONS.LOAD_IMAGE_TEST],
   ) => {
     writeFile(`test/e2e/${name}.${extension}`, buffer, (err) => {
       if (err) {
@@ -18,7 +18,10 @@ export const wsLoadFileActions = {
     });
 
     client.send(
-      JSON.stringify({ event: LOAD_IMAGE.TEST, data: { uuid, message: 'Content loaded' } }),
+      JSON.stringify({
+        event: ACTIONS.LOAD_IMAGE_TEST,
+        data: { uuid, message: 'Content loaded' },
+      }),
     );
   },
 };

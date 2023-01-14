@@ -1,7 +1,7 @@
 import 'test/utils/configs/ws-hook';
 
 import { WsClient } from '../utils/ws-client/ws-client';
-import { GAME_ACTIONS } from 'src/interfaces/ws';
+import { ACTIONS } from 'src/interfaces/ws';
 import { freezeTime } from 'test/utils/common';
 
 describe('ws', () => {
@@ -27,7 +27,7 @@ describe('ws', () => {
     const {
       event,
       data: { payload },
-    } = (await users[0].sendWsPromise(GAME_ACTIONS.CREATE_NEW_GAME, {
+    } = (await users[0].sendWsPromise(ACTIONS.CREATE_NEW_GAME, {
       payload: {
         teamId: '1asd',
         state: 'move',
@@ -36,7 +36,7 @@ describe('ws', () => {
 
     gameId = payload.gameId;
 
-    expect(event).toBe(GAME_ACTIONS.CREATE_NEW_GAME);
+    expect(event).toBe(ACTIONS.CREATE_NEW_GAME);
     expect(gameId).toBe(1);
   });
 
@@ -44,9 +44,9 @@ describe('ws', () => {
     const {
       event,
       data: { payload },
-    } = (await users[0].sendWsPromise(GAME_ACTIONS.GET_NOT_STARTED_GAMES, {})) as any;
+    } = (await users[0].sendWsPromise(ACTIONS.GET_NOT_STARTED_GAMES, {})) as any;
 
-    expect(event).toBe(GAME_ACTIONS.GET_NOT_STARTED_GAMES);
+    expect(event).toBe(ACTIONS.GET_NOT_STARTED_GAMES);
     expect(gameId).toBe(payload.gameIds[0].gameId);
   });
 
@@ -54,23 +54,23 @@ describe('ws', () => {
     const {
       event,
       data: { payload, from },
-    } = (await users[1].sendWsPromise(GAME_ACTIONS.JOIN_TO_GAME, {
+    } = (await users[1].sendWsPromise(ACTIONS.JOIN_TO_GAME, {
       payload: { gameId, teamId: 'test' },
     })) as any;
 
-    expect(event).toBe(GAME_ACTIONS.JOIN_TO_GAME);
+    expect(event).toBe(ACTIONS.JOIN_TO_GAME);
     expect(payload.gameId).toBe(gameId);
     expect(typeof payload.message).toBe('string');
     expect(from.userId).toBe(userIds[1]);
   });
 
   it('START_GAME', async () => {
-    const { data }: any = await users[0].sendWsPromise(GAME_ACTIONS.START_GAME, {});
+    const { data }: any = await users[0].sendWsPromise(ACTIONS.START_GAME, {});
 
     expect(typeof data.payload.message).toBe('string');
     expect(data.to.gameId).toBe(gameId);
 
-    const pauseGame: any = await users[0].sendWsPromise(GAME_ACTIONS.PAUSE_GAME, {
+    const pauseGame: any = await users[0].sendWsPromise(ACTIONS.PAUSE_GAME, {
       payload: {
         pause: true,
       },

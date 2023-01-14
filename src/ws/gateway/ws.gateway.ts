@@ -10,13 +10,12 @@ import {
 } from '@nestjs/websockets';
 import { intersection } from 'lodash';
 import {
-  GAME_ACTIONS,
+  ACTIONS,
   ActionTypes,
   IWsData,
   ModifyWebSocket,
   ToType,
   IRequiredTo,
-  LOAD_IMAGE,
 } from 'src/interfaces/ws';
 import { Server } from 'ws';
 import { AuthService } from 'src/controllers/auth/auth.service';
@@ -106,8 +105,8 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     // this.listenBuffer(client);
 
     client.sendError = (data) => {
-      const error: { event: GAME_ACTIONS.ERROR; data: RequiredField<WsErrorType, 'payload'> } = {
-        event: GAME_ACTIONS.ERROR,
+      const error: { event: ACTIONS.ERROR; data: RequiredField<WsErrorType, 'payload'> } = {
+        event: ACTIONS.ERROR,
         data: {
           event: data.event,
           payload: {
@@ -139,8 +138,8 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
       }
 
       const deserializedData = deserialize(data as Buffer, { promoteBuffers: true });
-      if (deserializedData.event === LOAD_IMAGE.TEST) {
-        wsLoadFileActions[LOAD_IMAGE.TEST](client, deserializedData.data);
+      if (deserializedData.event === ACTIONS.LOAD_IMAGE_TEST) {
+        wsLoadFileActions[ACTIONS.LOAD_IMAGE_TEST](client, deserializedData.data);
       }
     });
   }

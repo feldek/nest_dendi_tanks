@@ -1,15 +1,6 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { catchError, Observable, throwError } from 'rxjs';
-import {
-  ActionTypes,
-  ModifyWebSocket,
-  GAME_ACTIONS,
-  SERVER_ACTIONS,
-  CLIENT_ACTIONS,
-  IWsData,
-} from 'src/interfaces/ws';
-
-export type WsErrorEventTypes = GAME_ACTIONS.ERROR | SERVER_ACTIONS.ERROR | CLIENT_ACTIONS.ERROR;
+import { ActionTypes, ModifyWebSocket, ACTIONS, IWsData } from 'src/interfaces/ws';
 
 export type WsErrorType<T = {}> = { event: ActionTypes } & IWsData<
   { message: string; status?: number } & T

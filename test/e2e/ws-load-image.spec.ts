@@ -1,7 +1,7 @@
 import 'test/utils/configs/ws-hook';
 
 import { WsClient } from '../utils/ws-client/ws-client';
-import { LOAD_IMAGE } from 'src/interfaces/ws';
+import { ACTIONS } from 'src/interfaces/ws';
 import fs from 'fs';
 
 //crutch
@@ -42,7 +42,7 @@ describe.skip('ws', () => {
       },
     };
 
-    await users[0].sendWsPromise(LOAD_IMAGE.TEST, message);
+    await users[0].sendWsPromise(ACTIONS.LOAD_IMAGE_TEST, message);
     expect(fs.existsSync(newImagePath)).toBe(true);
 
     //remove file

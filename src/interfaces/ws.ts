@@ -20,7 +20,7 @@ export type ToType = RequireOnlyOne<
   ITargetWs & { broadcast: boolean },
   'userId' | 'groups' | 'gameId' | 'broadcast'
 >;
-export type ActionTypes = GAME_ACTIONS | CLIENT_ACTIONS | SERVER_ACTIONS | LOAD_IMAGE;
+export type ActionTypes = ACTIONS;
 
 type PayloadType = { [key: string | number]: any };
 
@@ -68,11 +68,7 @@ export interface ModifyWebSocket extends WebSocket, ITargetWs, IUserRoles {
   sendError: (data: WsErrorType) => void;
 }
 
-export const enum LOAD_IMAGE {
-  TEST = 'LOAD_IMAGE_TEST',
-}
-
-export const enum GAME_ACTIONS {
+export const enum ACTIONS {
   TEST = 'TEST',
   ERROR = 'ERROR',
   CONNECTION = 'CONNECTION',
@@ -86,40 +82,21 @@ export const enum GAME_ACTIONS {
   TANK_MOVEMENT = 'TANK_MOVEMENT',
   TANK_SHOT = 'TANK_SHOT',
   END_GAME = 'END_GAME',
-}
 
-export const enum CLIENT_ACTIONS {
   AUTHENTICATED = 'AUTHENTICATED',
   LOGOUT = 'LOGOUT',
-  ERROR = 'ERROR',
-  START_GAME = 'START_GAME',
-  JOIN_TO_GAME = 'JOIN_TO_GAME',
-  CREATE_NEW_GAME = 'CREATE_NEW_GAME',
-  PAUSE_GAME = 'PAUSE_GAME',
   USER_JOIN_TO_GAME = 'USER_JOIN_TO_GAME',
-  SET_GAME_DATA = 'SET_GAME_DATA',
   GAME_SNAPSHOT = 'GAME_SNAPSHOT',
-  END_GAME = 'END_GAME',
-}
-
-export const enum SERVER_ACTIONS {
-  ERROR = 'ERROR',
-  START_GAME = 'START_GAME',
-  CREATE_NEW_GAME = 'CREATE_NEW_GAME',
-  JOIN_TO_GAME = 'JOIN_TO_GAME',
   LEAVE_GAME = 'LEAVE_GAME',
-  FORCE_END_GAME = 'FORCE_END_GAME',
-  GAME_SNAPSHOT = 'GAME_SNAPSHOT',
-  END_GAME = 'END_GAME',
+  LOAD_IMAGE_TEST = 'LOAD_IMAGE_TEST',
 }
 
 export interface ISchema {
-  [GAME_ACTIONS.TEST]: { email: string; password: string };
-  [GAME_ACTIONS.CREATE_NEW_GAME]: Omit<ITankClass, 'userId'>;
-  [GAME_ACTIONS.JOIN_TO_GAME]: Omit<ITankClass, 'userId'> & { gameId: TGameId };
-  [GAME_ACTIONS.FORCE_END_GAME]: { gameId: TGameId };
-  [GAME_ACTIONS.TANK_MOVEMENT]: TTankControl;
-  [GAME_ACTIONS.PAUSE_GAME]: { pause: boolean };
-
-  [CLIENT_ACTIONS.AUTHENTICATED]: { token: string };
+  [ACTIONS.TEST]: { email: string; password: string };
+  [ACTIONS.CREATE_NEW_GAME]: Omit<ITankClass, 'userId'>;
+  [ACTIONS.JOIN_TO_GAME]: Omit<ITankClass, 'userId'> & { gameId: TGameId };
+  [ACTIONS.FORCE_END_GAME]: { gameId: TGameId };
+  [ACTIONS.TANK_MOVEMENT]: TTankControl;
+  [ACTIONS.PAUSE_GAME]: { pause: boolean };
+  [ACTIONS.AUTHENTICATED]: { token: string };
 }
