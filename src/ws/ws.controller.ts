@@ -1,34 +1,27 @@
+import { gameSessions } from './game/game-sessions.class';
 import { serverActions, IServerAction } from './gateway/actions/server-actions';
-import { gameActions, IGameAction } from './gateway/actions/game-actions.class';
+import { gameActions, IGameAction } from './gateway/actions/game-actions';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
-import { MessageBody } from '@nestjs/websockets';
+import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { ROLES } from 'src/constants';
 import { REDIS_ACTION, REDIS_NAMESPACE } from 'src/constants/redis.constants';
-import {
-  ActionTypes,
-  IWsData,
-  GAME_ACTIONS,
-  ModifyWebSocket,
-  ToType,
-  SERVER_ACTIONS,
-  ISchema,
-  CLIENT_ACTIONS,
-} from 'src/interfaces/ws';
+import { ActionTypes, IWsData, ACTIONS, ModifyWebSocket, ToType, ISchema } from 'src/interfaces/ws';
 import { WsRouterDecorators } from 'src/middlewares';
 import { WsGateway } from 'src/ws/gateway/ws.gateway';
 import { maps } from './game/map/maps.constants';
 import Redis from 'ioredis';
 import { AuthService } from 'src/controllers/auth/auth.service';
-import { clientActions } from './gateway/actions/client-actions';
-import { WsErrorEventTypes } from 'src/middlewares/ws.interceptor';
+import { clientActions, IClientAction } from './gateway/actions/client-actions';
+import { WsGamesState } from './gateway/ws.games-state';
 
 export class WsController extends WsGateway {
   constructor(
     @InjectRedis(REDIS_NAMESPACE.SUBSCRIBE) private readonly redisSub: Redis,
     @InjectRedis(REDIS_NAMESPACE.PUBLISH) private readonly redisPub: Redis,
     protected authService: AuthService,
+    readonly wsGamesState: WsGamesState,
   ) {
-    super(authService);
+    super(authService, wsGamesState);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_GAME);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_SERVER);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_CLIENT);
@@ -45,7 +38,7 @@ export class WsController extends WsGateway {
         //check existing receiver target on this server (gameId, userId)
         //right now you can set only one receiver
         const targetName = Object.keys(data.to)[0] as 'userId' | 'gameId';
-        if (!this[targetName][data.to[targetName]]) {
+        if (!this.wsGamesState[targetName][data.to[targetName]]) {
           return;
         }
 
@@ -61,7 +54,7 @@ export class WsController extends WsGateway {
           return;
         }
         //skip, if unnecessary node instance
-        if (!gameActions[data.to.gameId]) {
+        if (!gameSessions[data.to.gameId]) {
           return;
         }
 
@@ -89,40 +82,48 @@ export class WsController extends WsGateway {
     });
   }
 
-  propagateServerEvent<T extends IWsData<any, ToType>>(event: SERVER_ACTIONS, data: T) {
+  propagateServerEvent<T extends IWsData<any, ToType>>(event: ACTIONS, data: T) {
     this.redisPub.publish(REDIS_ACTION.PROPAGATE_SERVER, JSON.stringify({ event, data }));
   }
 
-  propagateGameEvent<T extends IWsData<any>>(event: GAME_ACTIONS, data: T) {
+  propagateGameEvent<T extends IWsData<any>>(event: ACTIONS, data: T) {
     this.redisPub.publish(REDIS_ACTION.PROPAGATE_GAME, JSON.stringify({ event, data }));
   }
 
-  propagateClientEvent<T extends IWsData<any, ToType>>(event: CLIENT_ACTIONS, data: T) {
+  propagateClientEvent<T extends IWsData<any, ToType>>(event: ACTIONS, data: T) {
     this.redisPub.publish(REDIS_ACTION.PROPAGATE_CLIENT, JSON.stringify({ event, data }));
   }
 
   propagateClientError<T extends IWsData<any, ToType> & { event: ActionTypes }>(
-    event: WsErrorEventTypes,
+    event: ACTIONS.ERROR,
     data: T,
   ) {
     this.redisPub.publish(REDIS_ACTION.PROPAGATE_CLIENT, JSON.stringify({ event, data }));
   }
 
-  @WsRouterDecorators(GAME_ACTIONS.TEST)
-  handleMessage(
-    client: ModifyWebSocket,
-    @MessageBody() message: IWsData<ISchema[GAME_ACTIONS.TEST]>,
-  ) {
-    // message.to = { broadcast: true };
-    // this.propagateMessage(ACTIONS.TEST, message);
-    // this.propagateMessage(ACTIONS.JOIN_TO_GAME, message, { broadcast: true });
+  // @WsRouterDecorators(GAME_ACTIONS.TEST, [])
+  @SubscribeMessage(ACTIONS.TEST)
+  handleMessage(client: ModifyWebSocket, @MessageBody() message: IWsData<ISchema[ACTIONS.TEST]>) {
+    // const fs = require('fs');
+    // console.log('controller');
+    // let data = "This is a file containing a collection of books.";
+    //@ts-ignore
+    // console.log(message);
+    // fs.writeFile('books.jpg', message.payload, (err) => {
+    //   if (err) console.log(err);
+    //   else {
+    //     console.log('File written successfully\n');
+    //     console.log('The written has the following contents:');
+    //     // console.log(fs.readFileSync("books.txt", "utf8"));
+    //   }
+    // });
+    // console.log(message);
+    // this.wsGamesState.addNewGame({ gameId: 4, started: false, userIds: [5] });
+    // this.wsGamesState.joinUserToGame({ gameId: 4, userId: 10 });
   }
 
-  @WsRouterDecorators(CLIENT_ACTIONS.AUTHENTICATED, [])
-  async authenticated(
-    client: ModifyWebSocket,
-    message: IWsData<ISchema[CLIENT_ACTIONS.AUTHENTICATED]>,
-  ) {
+  @WsRouterDecorators(ACTIONS.AUTHENTICATED, [])
+  async authenticated(client: ModifyWebSocket, message: IWsData<ISchema[ACTIONS.AUTHENTICATED]>) {
     const { userId, userRoles } = this.authService.decodeToken<{
       userId: number;
       userRoles: ROLES[];
@@ -130,33 +131,38 @@ export class WsController extends WsGateway {
     client.userId = userId;
     client.userRoles = userRoles;
 
-    this.paramUserIdAdd(userId);
+    this.wsGamesState.addUserId(userId);
 
     return {
-      event: CLIENT_ACTIONS.AUTHENTICATED,
-      data: { payload: { message: 'Authenticated successful' } },
+      event: ACTIONS.AUTHENTICATED,
+      data: { payload: { message: 'Authenticated successful', uuid: message.uuid } },
     };
   }
 
-  @WsRouterDecorators(CLIENT_ACTIONS.LOGOUT)
+  @WsRouterDecorators(ACTIONS.LOGOUT)
   logout(client: ModifyWebSocket) {
-    this.paramUserIdDelete(client.userId);
+    this.wsGamesState.deleteUserId(client.userId);
 
     client.userId = null;
     client.userRoles = [];
 
     return {
-      event: CLIENT_ACTIONS.LOGOUT,
+      event: ACTIONS.LOGOUT,
       data: { payload: { message: 'Logout successful' } },
     };
   }
 
-  @WsRouterDecorators(GAME_ACTIONS.CREATE_NEW_GAME)
-  newGame(client: ModifyWebSocket, message: IWsData<ISchema[GAME_ACTIONS.CREATE_NEW_GAME]>) {
+  @WsRouterDecorators(ACTIONS.CREATE_NEW_GAME)
+  newGame(
+    client: ModifyWebSocket,
+    message: IWsData<ISchema[ACTIONS.CREATE_NEW_GAME]>,
+  ): {
+    event: ActionTypes;
+    data: IWsData<{ gameId: number }, ToType>;
+  } {
     const userId = client.userId;
-
-    const gameId = this.getNewGameId();
-    gameActions.createNewGame(
+    const gameId = this.wsGamesState.getNewGameId();
+    gameSessions.createNewGame(
       {
         tanks: [{ ...message.payload, userId }],
         map: maps.testMap,
@@ -167,32 +173,27 @@ export class WsController extends WsGateway {
     client.gameId = gameId;
     client.isGameHost = true;
 
-    this.gameId[gameId] = gameId;
+    this.propagateServerEvent<IServerAction[ACTIONS.CREATE_NEW_GAME]>(ACTIONS.CREATE_NEW_GAME, {
+      to: { gameId },
+      payload: { userId },
+    });
 
-    this.propagateServerEvent<IServerAction[SERVER_ACTIONS.CREATE_NEW_GAME]>(
-      SERVER_ACTIONS.CREATE_NEW_GAME,
-      {
-        to: { gameId },
-        payload: { userId },
-      },
-    );
-
-    return WsGateway.generateResponse(GAME_ACTIONS.CREATE_NEW_GAME, {
+    return this.generateResponse(ACTIONS.CREATE_NEW_GAME, {
       payload: { gameId },
       uuid: message.uuid,
     });
   }
 
-  @WsRouterDecorators(GAME_ACTIONS.JOIN_TO_GAME)
-  joinToGame(client: ModifyWebSocket, message: IWsData<ISchema[GAME_ACTIONS.JOIN_TO_GAME]>) {
+  @WsRouterDecorators(ACTIONS.JOIN_TO_GAME)
+  joinToGame(client: ModifyWebSocket, message: IWsData<ISchema[ACTIONS.JOIN_TO_GAME]>) {
     const gameId = message.payload.gameId;
     const userId = client.userId;
 
-    const game = this.getGameById(gameId);
+    const game = this.wsGamesState.getGameById(gameId);
 
     if (!game) {
       client.sendError({
-        event: GAME_ACTIONS.JOIN_TO_GAME,
+        event: ACTIONS.JOIN_TO_GAME,
         payload: {
           message: `Game with id = ${gameId} not found`,
         },
@@ -202,7 +203,7 @@ export class WsController extends WsGateway {
       return;
     } else if (game.started) {
       client.sendError({
-        event: GAME_ACTIONS.JOIN_TO_GAME,
+        event: ACTIONS.JOIN_TO_GAME,
         payload: {
           message: `Game with id = ${gameId} already started`,
         },
@@ -212,87 +213,106 @@ export class WsController extends WsGateway {
       return;
     }
 
-    message.from = { userId: client.userId };
+    message.from = { userId };
     message.to = { gameId };
 
-    this.gameId[gameId] = gameId;
-
-    this.propagateGameEvent<IGameAction[GAME_ACTIONS.JOIN_TO_GAME]>(
-      GAME_ACTIONS.JOIN_TO_GAME,
-      message as IGameAction[GAME_ACTIONS.JOIN_TO_GAME],
-    );
-
-    this.propagateServerEvent<IServerAction[SERVER_ACTIONS.JOIN_TO_GAME]>(
-      SERVER_ACTIONS.JOIN_TO_GAME,
-      {
-        to: { gameId },
-        payload: { userId },
-      },
+    this.propagateGameEvent<IGameAction[ACTIONS.JOIN_TO_GAME]>(
+      ACTIONS.JOIN_TO_GAME,
+      message as IGameAction[ACTIONS.JOIN_TO_GAME],
     );
   }
 
-  @WsRouterDecorators(GAME_ACTIONS.START_GAME)
-  startGame(client: ModifyWebSocket) {
+  @WsRouterDecorators(ACTIONS.START_GAME)
+  startGame(client: ModifyWebSocket, message: IWsData) {
     if (!client.isGameHost) {
       return {
-        event: GAME_ACTIONS.ERROR,
+        event: ACTIONS.ERROR,
         data: { message: 'Start game should only host' },
       };
     }
     const gameId = client.gameId;
-    const game = gameActions[gameId];
+    const game = gameSessions[gameId];
 
     game.startGame(this.propagateClientEvent.bind(this), this.propagateServerEvent.bind(this));
-    this.propagateServerEvent<IServerAction[SERVER_ACTIONS.START_GAME]>(SERVER_ACTIONS.START_GAME, {
+    this.propagateServerEvent<IServerAction[ACTIONS.START_GAME]>(ACTIONS.START_GAME, {
+      to: { gameId },
+    });
+    this.propagateClientEvent<IClientAction[ACTIONS.START_GAME]>(ACTIONS.START_GAME, {
+      uuid: message.uuid,
       to: { gameId },
     });
   }
 
-  @WsRouterDecorators(GAME_ACTIONS.GET_NOT_STARTED_GAMES)
-  getNotStartedGamesController() {
-    const notStartedGameId = this.getNotStartedGames();
+  @WsRouterDecorators(ACTIONS.GET_NOT_STARTED_GAMES)
+  getNotStartedGamesController(_client: ModifyWebSocket, message: IWsData) {
+    const notStartedGameId = this.wsGamesState.getNotStartedGames();
 
     return {
-      event: GAME_ACTIONS.GET_NOT_STARTED_GAMES,
-      data: { payload: { gameIds: notStartedGameId } },
+      event: ACTIONS.GET_NOT_STARTED_GAMES,
+      data: { payload: { gameIds: notStartedGameId }, uuid: message.uuid },
     };
   }
 
-  @WsRouterDecorators(GAME_ACTIONS.PAUSE_GAME)
-  pauseGame(client: ModifyWebSocket, message: IWsData<ISchema[GAME_ACTIONS.PAUSE_GAME]>) {
+  @WsRouterDecorators(ACTIONS.PAUSE_GAME)
+  pauseGame(client: ModifyWebSocket, message: IWsData<ISchema[ACTIONS.PAUSE_GAME]>) {
     const pause = message.payload.pause;
-    this.propagateGameEvent<IGameAction[GAME_ACTIONS.PAUSE_GAME]>(GAME_ACTIONS.PAUSE_GAME, {
+    this.propagateGameEvent<IGameAction[ACTIONS.PAUSE_GAME]>(ACTIONS.PAUSE_GAME, {
       to: { gameId: client.gameId },
+      uuid: message.uuid,
       payload: { pause },
     });
   }
 
-  @WsRouterDecorators(GAME_ACTIONS.FORCE_END_GAME, ROLES.ADMIN)
-  endGame(@MessageBody() message: IWsData<ISchema[GAME_ACTIONS.FORCE_END_GAME]>) {
-    const game = gameActions[message.payload.gameId];
+  @WsRouterDecorators(ACTIONS.FORCE_END_GAME, ROLES.ADMIN)
+  endGame(
+    _client: ModifyWebSocket,
+    message: IWsData<ISchema[ACTIONS.FORCE_END_GAME]>,
+  ): {
+    event: ActionTypes;
+    data: IWsData<{ gameId: number }, ToType>;
+  } {
+    const gameId = message.payload.gameId;
+    const game = gameSessions[gameId];
     game.endGame();
+
+    //need propagate to all users
+    return this.generateResponse(ACTIONS.END_GAME, {
+      payload: { gameId },
+      uuid: message.uuid,
+    });
   }
 
-  @WsRouterDecorators(GAME_ACTIONS.TANK_MOVEMENT)
-  tankMovement(client: ModifyWebSocket, message: IWsData<ISchema[GAME_ACTIONS.TANK_MOVEMENT]>) {
+  @WsRouterDecorators(ACTIONS.TANK_MOVEMENT)
+  tankMovement(client: ModifyWebSocket, message: IWsData<ISchema[ACTIONS.TANK_MOVEMENT]>) {
     const { userId, gameId } = client;
 
     message.to = { gameId };
     message.from = { userId };
 
-    this.propagateGameEvent<IGameAction[GAME_ACTIONS.TANK_MOVEMENT]>(
-      GAME_ACTIONS.TANK_MOVEMENT,
-      message as IGameAction[GAME_ACTIONS.TANK_MOVEMENT],
+    this.propagateGameEvent<IGameAction[ACTIONS.TANK_MOVEMENT]>(
+      ACTIONS.TANK_MOVEMENT,
+      message as IGameAction[ACTIONS.TANK_MOVEMENT],
     );
   }
 
-  @WsRouterDecorators(GAME_ACTIONS.TANK_SHOT)
+  @WsRouterDecorators(ACTIONS.TANK_SHOT)
   tankShot(client: ModifyWebSocket) {
     const { userId, gameId } = client;
 
-    this.propagateGameEvent<IGameAction[GAME_ACTIONS.TANK_SHOT]>(GAME_ACTIONS.TANK_SHOT, {
+    this.propagateGameEvent<IGameAction[ACTIONS.TANK_SHOT]>(ACTIONS.TANK_SHOT, {
       to: { gameId },
       from: { userId },
+    });
+  }
+
+  @WsRouterDecorators(ACTIONS.GET_GAME_SNAPSHOT)
+  getSnapshot(client: ModifyWebSocket, message: IWsData) {
+    const { userId, gameId } = client;
+
+    this.propagateGameEvent<IGameAction[ACTIONS.GET_GAME_SNAPSHOT]>(ACTIONS.GET_GAME_SNAPSHOT, {
+      to: { gameId },
+      from: { userId },
+      uuid: message.uuid,
     });
   }
 }

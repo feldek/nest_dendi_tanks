@@ -13,7 +13,7 @@ import { IWsData } from 'src/interfaces/ws';
 export class JoiValidationPipe implements PipeTransform {
   constructor(private schema: ObjectSchema) {}
 
-  transform(value: IWsData<any>, _metadata: ArgumentMetadata) {
+  transform(value: any, _metadata: ArgumentMetadata) {
     //check payload field for ws message
     const { error, value: joiValue } = this.schema.validate(value.payload);
     if (error) {

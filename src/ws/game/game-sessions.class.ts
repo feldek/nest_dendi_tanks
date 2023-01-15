@@ -29,3 +29,5 @@ export class GameSessionsClass {
     }
   }
 }
+
+export const gameSessions = new GameSessionsClass();
