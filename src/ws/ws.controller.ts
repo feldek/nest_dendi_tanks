@@ -1,6 +1,6 @@
-import { gameSessions } from './game/game-sessions.class';
-import { serverActions, IServerAction } from './gateway/actions/server-actions';
-import { gameActions, IGameAction } from './gateway/actions/game-actions';
+import { gameSessions } from '../game/game-sessions.class';
+import { serverActions, IServerAction } from './actions/server-actions';
+import { gameActions, IGameAction } from './actions/game-actions';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { ROLES } from 'src/constants';
@@ -8,10 +8,10 @@ import { REDIS_ACTION, REDIS_NAMESPACE } from 'src/constants/redis.constants';
 import { ActionTypes, IWsData, ACTIONS, ModifyWebSocket, ToType, ISchema } from 'src/interfaces/ws';
 import { WsRouterDecorators } from 'src/middlewares';
 import { WsGateway } from 'src/ws/gateway/ws.gateway';
-import { maps } from './game/map/maps.constants';
+import { maps } from '../game/map/maps.constants';
 import Redis from 'ioredis';
 import { AuthService } from 'src/controllers/auth/auth.service';
-import { clientActions, IClientAction } from './gateway/actions/client-actions';
+import { clientActions, IClientAction } from './actions/client-actions';
 import { WsGamesState } from './gateway/ws.games-state';
 
 export class WsController extends WsGateway {

@@ -1,4 +1,4 @@
-import { DELTA_T } from '../../../constants/index';
+import { DELTA_T } from '../../constants/index';
 export type directionType = 'right' | 'left' | 'up' | 'down';
 export interface ICoordinate {
   x: number;

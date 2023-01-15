@@ -1,9 +1,9 @@
 import { RequiredField } from 'src/interfaces/common';
 import { ToType, IRequiredTo, ISchema, ACTIONS } from 'src/interfaces/ws';
 import { WsErrorType } from 'src/middlewares/ws.interceptor';
-import { directionType } from 'src/ws/game/common/dynamicObj.class';
-import { MissilesClass } from 'src/ws/game/missiles/missiles.class';
-import { WsController } from '../../ws.controller';
+import { directionType } from 'src/game/common/dynamicObj.class';
+import { MissilesClass } from 'src/game/missiles/missiles.class';
+import { WsController } from '../ws.controller';
 
 export interface IClientAction {
   [ACTIONS.ERROR]: RequiredField<WsErrorType, 'to' | 'payload'>;

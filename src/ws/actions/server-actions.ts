@@ -1,5 +1,5 @@
 import { ACTIONS, IRequiredTo } from 'src/interfaces/ws';
-import { WsController } from '../../ws.controller';
+import { WsController } from 'src/ws/ws.controller';
 
 export interface IServerAction {
   [ACTIONS.CREATE_NEW_GAME]: IRequiredTo<{ userId: number }>;

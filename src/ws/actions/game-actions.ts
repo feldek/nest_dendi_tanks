@@ -1,6 +1,6 @@
 import { gameSessions } from '../../game/game-sessions.class';
 import { ACTIONS, ISchema, IRequiredTo, IRequiredToFrom } from 'src/interfaces/ws';
-import { WsController } from '../../ws.controller';
+import { WsController } from '../ws.controller';
 import { TTankControl } from '../../game/tank/tank.class';
 import { IClientAction } from './client-actions';
 import { IServerAction } from './server-actions';

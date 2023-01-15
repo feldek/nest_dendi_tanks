@@ -21,7 +21,7 @@ import { Server } from 'ws';
 import { AuthService } from 'src/controllers/auth/auth.service';
 import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { deserialize } from 'bson';
-import { wsLoadFileActions } from './actions/ws-load-file-actions';
+import { wsLoadFileActions } from '../actions/ws-load-file-actions';
 
 @Injectable()
 @WebSocketGateway({
