@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import { AppModule } from 'src/app.module';
 
 let app: INestApplication;
+export let addressForTests: { address: string; family: string; port: number };
 
 beforeAll(async () => {
   const module = await Test.createTestingModule({
@@ -14,7 +15,7 @@ beforeAll(async () => {
 
   app = module.createNestApplication();
   app.useWebSocketAdapter(new WsAdapter(app));
-  app.listen(8000);
+  addressForTests = app.getHttpServer().listen().address();
 
   await app.init();
 });

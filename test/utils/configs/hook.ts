@@ -22,4 +22,4 @@ beforeAll(async () => {
   request = supertest(initTestApp.getHttpServer());
 });
 
-afterAll(() => initTestApp.close());
+afterAll(async() => await initTestApp.close());

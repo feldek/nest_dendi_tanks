@@ -1,11 +1,11 @@
-import 'test/utils/configs/ws-hook';
+import { addressForTests } from 'test/utils/configs/ws-hook';
 
 import { WsClient } from '../utils/ws-client/ws-client';
 import { ACTIONS } from 'src/interfaces/ws';
 import { freezeTime } from 'test/utils/common';
 
-describe('ws', () => {
-  const userIds = [10, 20];
+describe('ws actions:', () => {
+  const userIds = [10, 20, 30];
   let users: WsClient[] = [];
 
   beforeEach(() => {
@@ -13,7 +13,7 @@ describe('ws', () => {
   });
 
   beforeAll(async () => {
-    users = userIds.map((userId) => new WsClient(userId));
+    users = userIds.map((userId) => new WsClient(userId, { port: addressForTests.port }));
     await freezeTime(300);
   });
 
@@ -27,12 +27,12 @@ describe('ws', () => {
     const {
       event,
       data: { payload },
-    } = (await users[0].sendWsPromise(ACTIONS.CREATE_NEW_GAME, {
+    }: any = await users[0].sendWsPromise(ACTIONS.CREATE_NEW_GAME, {
       payload: {
         teamId: '1asd',
         state: 'move',
       },
-    })) as any;
+    });
 
     gameId = payload.gameId;
 
@@ -44,7 +44,7 @@ describe('ws', () => {
     const {
       event,
       data: { payload },
-    } = (await users[0].sendWsPromise(ACTIONS.GET_NOT_STARTED_GAMES, {})) as any;
+    }: any = await users[0].sendWsPromise(ACTIONS.GET_NOT_STARTED_GAMES, {});
 
     expect(event).toBe(ACTIONS.GET_NOT_STARTED_GAMES);
     expect(gameId).toBe(payload.gameIds[0].gameId);
@@ -54,9 +54,9 @@ describe('ws', () => {
     const {
       event,
       data: { payload, from },
-    } = (await users[1].sendWsPromise(ACTIONS.JOIN_TO_GAME, {
+    }: any = await users[1].sendWsPromise(ACTIONS.JOIN_TO_GAME, {
       payload: { gameId, teamId: 'test' },
-    })) as any;
+    });
 
     expect(event).toBe(ACTIONS.JOIN_TO_GAME);
     expect(payload.gameId).toBe(gameId);
@@ -76,6 +76,55 @@ describe('ws', () => {
       },
     });
 
+    expect(pauseGame.data.payload.pause).toBe(true);
+    expect(pauseGame.data.to.gameId).toBe(gameId);
+  });
+
+  let yCoordinatesTank1: number;
+  it('GET_GAME_SNAPSHOT', async () => {
+    const pauseGame: any = await users[0].sendWsPromise(ACTIONS.PAUSE_GAME, {
+      payload: {
+        pause: false,
+      },
+    });
+    expect(pauseGame.data.payload.pause).toBe(false);
+    expect(pauseGame.data.to.gameId).toBe(gameId);
+
+    const { data }: any = await users[0].sendWsPromise(ACTIONS.GET_GAME_SNAPSHOT, {});
+
+    yCoordinatesTank1 = data.payload.tanks[0].y;
+    expect(data.payload.tanks.length).toBe(2);
+    expect(data.payload.missiles.length).toBe(0);
+
+    await freezeTime(50);
+    //there is tank stay
+    const snapshot2: any = await users[0].sendWsPromise(ACTIONS.GET_GAME_SNAPSHOT, {});
+    expect(snapshot2.data.payload.tanks[0].y).toBe(yCoordinatesTank1);
+  });
+
+  it('GET_GAME_SNAPSHOT: tank move 300ms', async () => {
+    //tank move
+    users[0].publish(ACTIONS.TANK_MOVEMENT, {
+      payload: {
+        state: 'move',
+        direction: 'up',
+      },
+    });
+
+    await freezeTime(300);
+
+    const { data }: any = await users[0].sendWsPromise(ACTIONS.GET_GAME_SNAPSHOT, {});
+
+    const yCoordinatesTank1AfterDelay = data.payload.tanks[0].y;
+    expect(yCoordinatesTank1AfterDelay).toBeGreaterThan(yCoordinatesTank1);
+    expect(data.payload.tanks.length).toBe(2);
+    expect(data.payload.missiles.length).toBe(0);
+
+    const pauseGame: any = await users[0].sendWsPromise(ACTIONS.PAUSE_GAME, {
+      payload: {
+        pause: true,
+      },
+    });
     expect(pauseGame.data.payload.pause).toBe(true);
     expect(pauseGame.data.to.gameId).toBe(gameId);
   });

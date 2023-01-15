@@ -3,7 +3,7 @@ import { ACTIONS, ISchema } from 'src/interfaces/ws';
 
 const defaultState = {
   tank: {
-    state: Joi.string().valid('stay', 'move', 'hold').default('move'),
+    state: Joi.string().valid('stay', 'move', 'hold').default('stay'),
     direction: Joi.string().valid('right', 'left', 'up', 'down').default('up'),
     armor: Joi.number().default(4),
     speed: Joi.number().default(40),

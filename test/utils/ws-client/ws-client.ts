@@ -29,15 +29,15 @@ export class WsClient {
   private tankState: 'stay' | 'move' | 'hold' = 'stay';
   connection: WebSocket;
 
-  constructor(userId, showConsoleData = false, readKeyboard = false) {
-    const connection = new WebSocket(`ws://localhost:8000`);
+  constructor(userId, options: { port: number }, showConsoleData = false, readKeyboard = false) {
+    const connection = new WebSocket(`ws://localhost:${options.port}`);
 
     this.connection = connection;
 
     readKeyboard && this.readKeyboard();
 
     connection.on('open', () => {
-      console.log('connection on');
+      // console.log('connection on');
 
       const jwtService = new JwtService({
         secret: process.env.ACCESS_PRIVATE_KEY,
@@ -55,25 +55,30 @@ export class WsClient {
     });
 
     connection.on('message', (data) => {
-      //@ts-ignore
-      const wsData = JSON.parse(data);
+      try {
+        //@ts-ignore
+        const wsData = JSON.parse(data);
 
-      const uuid = wsData?.data.uuid;
-      if (uuid) {
-        emitter.emit(uuid, wsData);
-      }
+        const uuid = wsData?.data.uuid;
+        if (uuid) {
+          emitter.emit(uuid, wsData);
+        }
+        console.log(`userId ${userId} event:`, wsData.event, '\n', 'uuid:', wsData.data.uuid);
 
-      if (showConsoleData && ACTIONS.GAME_SNAPSHOT === wsData.event) {
-        this.showInConsole(wsData.data.payload);
+        if (showConsoleData && ACTIONS.GAME_SNAPSHOT === wsData.event) {
+          this.showInConsole(wsData.data.payload);
 
-        return;
-      } else if (ACTIONS.ERROR === wsData.event) {
-        console.log(wsData.data);
-        return;
-      } else {
-        showConsoleData &&
-          console.log(`userId ${userId} event:`, wsData.event, '\n', 'uuid:', wsData.data.uuid);
-        return;
+          return;
+        } else if (ACTIONS.ERROR === wsData.event) {
+          console.log(wsData.data);
+          return;
+        } else {
+          showConsoleData &&
+            console.log(`userId ${userId} event:`, wsData.event, '\n', 'uuid:', wsData.data.uuid);
+          return;
+        }
+      } catch (error) {
+        console.log(error);
       }
     });
 
@@ -85,31 +90,8 @@ export class WsClient {
     this.connection.send(JSON.stringify({ event, data: message }));
   }
 
+  //there is possible send binary data
   sendWsBinaryPromise<T>(event: ActionTypes, message: IWsData<T>) {
-    const serverExceedTimeout = 2;
-    const uuid = message.uuid || uuidv4();
-    message.uuid = uuid;
-
-    const serializeData = serialize(message);
-
-    return new Promise((resolve, reject) => {
-      this.connection.send(serializeData, { binary: true });
-
-      const callback = (data) => {
-        data ? resolve(data) : reject(new Error('Unexpected server response.'));
-      };
-
-      emitter.once(uuid, callback);
-
-      setTimeout(() => {
-        if (hasListeners(emitter, uuid)) {
-          reject(new Error(`Timeout exceed, ${serverExceedTimeout} sec`));
-          emitter.off(uuid, callback);
-        }
-      }, serverExceedTimeout * 1000);
-    });
-  }
-  sendWsPromise<T>(event: ActionTypes, message: IWsData<T | void>) {
     const serverExceedTimeout = 2;
     const uuid = message.uuid || uuidv4();
     message.uuid = uuid;
@@ -125,6 +107,29 @@ export class WsClient {
       } else {
         this.publish<T>(event, message);
       }
+
+      const callback = (data) => {
+        data ? resolve(data) : reject(new Error('Unexpected server response.'));
+      };
+
+      emitter.once(uuid, callback);
+
+      setTimeout(() => {
+        if (hasListeners(emitter, uuid)) {
+          reject(new Error(`Timeout exceed, ${serverExceedTimeout} sec`));
+          emitter.off(uuid, callback);
+        }
+      }, serverExceedTimeout * 1000);
+    });
+  }
+
+  sendWsPromise<T>(event: ActionTypes, message: IWsData<T | void>) {
+    const serverExceedTimeout = 2;
+    const uuid = message.uuid || uuidv4();
+    message.uuid = uuid;
+
+    return new Promise((resolve, reject) => {
+      this.publish<T>(event, message);
 
       const callback = (data) => {
         data ? resolve(data) : reject(new Error('Unexpected server response.'));

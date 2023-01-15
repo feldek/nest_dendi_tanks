@@ -105,12 +105,10 @@ export class WsController extends WsGateway {
   @SubscribeMessage(ACTIONS.TEST)
   handleMessage(client: ModifyWebSocket, @MessageBody() message: IWsData<ISchema[ACTIONS.TEST]>) {
     // const fs = require('fs');
-    console.log('controller');
-
+    // console.log('controller');
     // let data = "This is a file containing a collection of books.";
     //@ts-ignore
     // console.log(message);
-
     // fs.writeFile('books.jpg', message.payload, (err) => {
     //   if (err) console.log(err);
     //   else {
@@ -119,9 +117,7 @@ export class WsController extends WsGateway {
     //     // console.log(fs.readFileSync("books.txt", "utf8"));
     //   }
     // });
-
     // console.log(message);
-
     // this.wsGamesState.addNewGame({ gameId: 4, started: false, userIds: [5] });
     // this.wsGamesState.joinUserToGame({ gameId: 4, userId: 10 });
   }
@@ -165,7 +161,6 @@ export class WsController extends WsGateway {
     data: IWsData<{ gameId: number }, ToType>;
   } {
     const userId = client.userId;
-
     const gameId = this.wsGamesState.getNewGameId();
     gameSessions.createNewGame(
       {
@@ -183,7 +178,10 @@ export class WsController extends WsGateway {
       payload: { userId },
     });
 
-    return this.generateResponse(ACTIONS.CREATE_NEW_GAME, { payload: { gameId } });
+    return this.generateResponse(ACTIONS.CREATE_NEW_GAME, {
+      payload: { gameId },
+      uuid: message.uuid,
+    });
   }
 
   @WsRouterDecorators(ACTIONS.JOIN_TO_GAME)
@@ -215,7 +213,7 @@ export class WsController extends WsGateway {
       return;
     }
 
-    message.from = { userId: client.userId };
+    message.from = { userId };
     message.to = { gameId };
 
     this.propagateGameEvent<IGameAction[ACTIONS.JOIN_TO_GAME]>(
@@ -225,7 +223,7 @@ export class WsController extends WsGateway {
   }
 
   @WsRouterDecorators(ACTIONS.START_GAME)
-  startGame(client: ModifyWebSocket, message: IWsData<{}>) {
+  startGame(client: ModifyWebSocket, message: IWsData) {
     if (!client.isGameHost) {
       return {
         event: ACTIONS.ERROR,
@@ -246,7 +244,7 @@ export class WsController extends WsGateway {
   }
 
   @WsRouterDecorators(ACTIONS.GET_NOT_STARTED_GAMES)
-  getNotStartedGamesController(_client: ModifyWebSocket, message: IWsData<{}>) {
+  getNotStartedGamesController(_client: ModifyWebSocket, message: IWsData) {
     const notStartedGameId = this.wsGamesState.getNotStartedGames();
 
     return {
@@ -304,6 +302,17 @@ export class WsController extends WsGateway {
     this.propagateGameEvent<IGameAction[ACTIONS.TANK_SHOT]>(ACTIONS.TANK_SHOT, {
       to: { gameId },
       from: { userId },
+    });
+  }
+
+  @WsRouterDecorators(ACTIONS.GET_GAME_SNAPSHOT)
+  getSnapshot(client: ModifyWebSocket, message: IWsData) {
+    const { userId, gameId } = client;
+
+    this.propagateGameEvent<IGameAction[ACTIONS.GET_GAME_SNAPSHOT]>(ACTIONS.GET_GAME_SNAPSHOT, {
+      to: { gameId },
+      from: { userId },
+      uuid: message.uuid,
     });
   }
 }

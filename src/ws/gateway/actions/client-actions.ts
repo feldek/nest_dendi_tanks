@@ -51,6 +51,13 @@ export const clientActions = {
     wsServer.sendToClient(ACTIONS.GAME_SNAPSHOT, data);
   },
 
+  [ACTIONS.GET_GAME_SNAPSHOT]: (
+    wsServer: WsController,
+    data: IClientAction[ACTIONS.GAME_SNAPSHOT],
+  ) => {
+    wsServer.sendToClient(ACTIONS.GET_GAME_SNAPSHOT, data);
+  },
+
   [ACTIONS.PAUSE_GAME]: (wsServer: WsController, data: IClientAction[ACTIONS.PAUSE_GAME]) => {
     wsServer.sendToClient(ACTIONS.PAUSE_GAME, data);
   },

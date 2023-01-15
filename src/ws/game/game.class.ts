@@ -77,6 +77,14 @@ export class GameClass {
       return !hitToLandscape;
     });
 
+    this.propagateClientEvent<IClientAction[ACTIONS.GAME_SNAPSHOT]>(ACTIONS.GAME_SNAPSHOT, {
+      to: { gameId: this.gameId },
+      payload: this.getGameSnapshot(),
+    });
+  }
+
+  //get positions and metadata of all objects on the map
+  getGameSnapshot() {
     const tanksData = Object.values(this.tanks).map((tank) => ({
       x: tank.x,
       y: tank.y,
@@ -86,13 +94,10 @@ export class GameClass {
       teamId: tank.teamId,
     }));
 
-    this.propagateClientEvent<IClientAction[ACTIONS.GAME_SNAPSHOT]>(ACTIONS.GAME_SNAPSHOT, {
-      to: { gameId: this.gameId },
-      payload: {
-        tanks: tanksData,
-        missiles: this.missiles,
-      },
-    });
+    return {
+      tanks: tanksData,
+      missiles: this.missiles,
+    };
   }
 
   checkEndGame() {

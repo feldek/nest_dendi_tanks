@@ -60,8 +60,8 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     }
 
     userTarget.forEach((user) => {
-      //@ts-ignore
-      user.send(JSON.stringify(WsGateway.generateResponse<P>(event, message)));
+      // @ts-ignore
+      user.send(JSON.stringify(this.generateResponse<P, ToType>(event, message)));
     });
   }
 
@@ -129,6 +129,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     // client.send(message);
   }
 
+  //there is necessary for get binary data
   private listenBuffer(client: ModifyWebSocket) {
     //TODO: find possibility normal deserialize this data
     client.on('message', (data) => {

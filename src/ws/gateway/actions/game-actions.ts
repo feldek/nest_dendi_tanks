@@ -11,6 +11,7 @@ export interface IGameAction {
   [ACTIONS.FORCE_END_GAME]: IRequiredTo;
   [ACTIONS.TANK_SHOT]: IRequiredToFrom;
   [ACTIONS.TANK_MOVEMENT]: IRequiredToFrom<TTankControl>;
+  [ACTIONS.GET_GAME_SNAPSHOT]: IRequiredToFrom;
 }
 
 export const gameActions = {
@@ -85,5 +86,19 @@ export const gameActions = {
   [ACTIONS.TANK_SHOT](_wsServer: WsController, { from, to }: IGameAction[ACTIONS.TANK_SHOT]) {
     const tank = gameSessions[to.gameId].tanks[from.userId];
     tank.shot(gameSessions[to.gameId].missiles);
+  },
+
+  [ACTIONS.GET_GAME_SNAPSHOT](
+    wsServer: WsController,
+    { from, to, uuid }: IGameAction[ACTIONS.GET_GAME_SNAPSHOT],
+  ) {
+    const game = gameSessions[to.gameId];
+    const gameSnapshot = game.getGameSnapshot();
+
+    wsServer.propagateClientEvent(ACTIONS.GET_GAME_SNAPSHOT, {
+      uuid,
+      payload: gameSnapshot,
+      to: { userId: from.userId },
+    });
   },
 };
