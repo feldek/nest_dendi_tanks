@@ -1,3 +1,4 @@
+import { WsLoadFileActions } from './../actions/load-file';
 import { WsGamesState } from './ws.games-state';
 import { RequiredField, RequireOnlyOne } from 'src/interfaces/common';
 import { Injectable, Logger } from '@nestjs/common';
@@ -21,7 +22,6 @@ import { Server } from 'ws';
 import { AuthService } from 'src/controllers/auth/auth.service';
 import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { deserialize } from 'bson';
-import { wsLoadFileActions } from '../actions/ws-load-file-actions';
 
 @Injectable()
 @WebSocketGateway({
@@ -30,7 +30,11 @@ import { wsLoadFileActions } from '../actions/ws-load-file-actions';
   },
 })
 export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  constructor(protected authService: AuthService, readonly wsGamesState: WsGamesState) {}
+  constructor(
+    protected authService: AuthService,
+    readonly wsGamesState: WsGamesState,
+    readonly wsLoadFileActions: WsLoadFileActions,
+  ) {}
 
   @WebSocketServer()
   server: Server<ModifyWebSocket>;
@@ -134,13 +138,14 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     //TODO: find possibility normal deserialize this data
     client.on('message', (data) => {
       //there we check string or bson data type(it's horrible way)
+
       if (!data || data.toString().slice(0, 2) === '{"') {
         return;
       }
 
       const deserializedData = deserialize(data as Buffer, { promoteBuffers: true });
       if (deserializedData.event === ACTIONS.LOAD_IMAGE_TEST) {
-        wsLoadFileActions[ACTIONS.LOAD_IMAGE_TEST](client, deserializedData.data);
+        this.wsLoadFileActions[ACTIONS.LOAD_IMAGE_TEST](client, deserializedData.data);
       }
     });
   }

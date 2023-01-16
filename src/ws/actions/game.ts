@@ -1,9 +1,10 @@
+import { Injectable } from '@nestjs/common';
 import { gameSessions } from '../../game/game-sessions.class';
 import { ACTIONS, ISchema, IRequiredTo, IRequiredToFrom } from 'src/interfaces/ws';
 import { WsController } from '../ws.controller';
 import { TTankControl } from '../../game/tank/tank.class';
-import { IClientAction } from './client-actions';
-import { IServerAction } from './server-actions';
+import { IClientAction } from './client';
+import { IServerAction } from './server';
 
 export interface IGameAction {
   [ACTIONS.JOIN_TO_GAME]: IRequiredToFrom<ISchema[ACTIONS.JOIN_TO_GAME]>;
@@ -14,7 +15,8 @@ export interface IGameAction {
   [ACTIONS.GET_GAME_SNAPSHOT]: IRequiredToFrom;
 }
 
-export const gameActions = {
+@Injectable()
+export class GameActions {
   [ACTIONS.JOIN_TO_GAME](wsServer: WsController, data: IGameAction[ACTIONS.JOIN_TO_GAME]) {
     const userId = data.from.userId;
     const { gameId, ...otherParams } = data.payload;
@@ -52,7 +54,7 @@ export const gameActions = {
       to: { gameId },
       payload: { userId },
     });
-  },
+  }
 
   [ACTIONS.PAUSE_GAME](wsServer: WsController, data: IGameAction[ACTIONS.PAUSE_GAME]) {
     const game = gameSessions[data.to.gameId];
@@ -66,12 +68,12 @@ export const gameActions = {
         payload: { pause },
       });
     }
-  },
+  }
 
   [ACTIONS.FORCE_END_GAME](_wsServer: WsController, data: IGameAction[ACTIONS.FORCE_END_GAME]) {
     const game = gameSessions[data.to.gameId];
     game.endGame();
-  },
+  }
 
   [ACTIONS.TANK_MOVEMENT](
     _wsServer: WsController,
@@ -81,12 +83,12 @@ export const gameActions = {
 
     const tank = gameSessions[gameId].tanks[from.userId];
     tank.changeMovement(payload);
-  },
+  }
 
   [ACTIONS.TANK_SHOT](_wsServer: WsController, { from, to }: IGameAction[ACTIONS.TANK_SHOT]) {
     const tank = gameSessions[to.gameId].tanks[from.userId];
     tank.shot(gameSessions[to.gameId].missiles);
-  },
+  }
 
   [ACTIONS.GET_GAME_SNAPSHOT](
     wsServer: WsController,
@@ -100,5 +102,5 @@ export const gameActions = {
       payload: gameSnapshot,
       to: { userId: from.userId },
     });
-  },
-};
+  }
+}

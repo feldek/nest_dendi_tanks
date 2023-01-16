@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import { IWsData, ModifyWebSocket, ACTIONS } from 'src/interfaces/ws';
 import { writeFile } from 'fs';
 
@@ -6,11 +7,12 @@ export interface IWsLoadFileActions {
 }
 
 // needed to inform all node instances about event, because he accumulate info about all games status
-export const wsLoadFileActions = {
-  [ACTIONS.LOAD_IMAGE_TEST]: (
+@Injectable()
+export class WsLoadFileActions {
+  [ACTIONS.LOAD_IMAGE_TEST](
     client: ModifyWebSocket,
     { payload: { buffer, extension, name }, uuid }: IWsLoadFileActions[ACTIONS.LOAD_IMAGE_TEST],
-  ) => {
+  ) {
     writeFile(`test/e2e/${name}.${extension}`, buffer, (err) => {
       if (err) {
         throw err;
@@ -23,5 +25,5 @@ export const wsLoadFileActions = {
         data: { uuid, message: 'Content loaded' },
       }),
     );
-  },
-};
+  }
+}

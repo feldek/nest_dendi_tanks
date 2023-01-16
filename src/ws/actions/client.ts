@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import { RequiredField } from 'src/interfaces/common';
 import { ToType, IRequiredTo, ISchema, ACTIONS } from 'src/interfaces/ws';
 import { WsErrorType } from 'src/middlewares/ws.interceptor';
@@ -25,19 +26,20 @@ export interface IClientAction {
 }
 
 // needed to inform all node instances about event
-export const clientActions = {
-  [ACTIONS.ERROR]: (wsServer: WsController, data: IClientAction[ACTIONS.ERROR]) => {
+@Injectable()
+export class ClientActions {
+  [ACTIONS.ERROR](wsServer: WsController, data: IClientAction[ACTIONS.ERROR]) {
     wsServer.sendToClient(ACTIONS.ERROR, data);
-  },
-  [ACTIONS.START_GAME]: (wsServer: WsController, data: IClientAction[ACTIONS.START_GAME]) => {
+  }
+  [ACTIONS.START_GAME](wsServer: WsController, data: IClientAction[ACTIONS.START_GAME]) {
     const message = {
       ...data,
       payload: { message: `GameId ${data.to.gameId} successfully started` },
     };
     wsServer.sendToClient(ACTIONS.START_GAME, message);
-  },
+  }
 
-  [ACTIONS.JOIN_TO_GAME]: (wsServer: WsController, data: IClientAction[ACTIONS.JOIN_TO_GAME]) => {
+  [ACTIONS.JOIN_TO_GAME](wsServer: WsController, data: IClientAction[ACTIONS.JOIN_TO_GAME]) {
     const [client] = wsServer.getWsClients({ userId: data.from.userId });
 
     if (!client) {
@@ -45,24 +47,21 @@ export const clientActions = {
     }
     client.gameId = data.payload.gameId;
     wsServer.sendToClient(ACTIONS.JOIN_TO_GAME, data);
-  },
+  }
 
-  [ACTIONS.GAME_SNAPSHOT]: (wsServer: WsController, data: IClientAction[ACTIONS.GAME_SNAPSHOT]) => {
+  [ACTIONS.GAME_SNAPSHOT](wsServer: WsController, data: IClientAction[ACTIONS.GAME_SNAPSHOT]) {
     wsServer.sendToClient(ACTIONS.GAME_SNAPSHOT, data);
-  },
+  }
 
-  [ACTIONS.GET_GAME_SNAPSHOT]: (
-    wsServer: WsController,
-    data: IClientAction[ACTIONS.GAME_SNAPSHOT],
-  ) => {
+  [ACTIONS.GET_GAME_SNAPSHOT](wsServer: WsController, data: IClientAction[ACTIONS.GAME_SNAPSHOT]) {
     wsServer.sendToClient(ACTIONS.GET_GAME_SNAPSHOT, data);
-  },
+  }
 
-  [ACTIONS.PAUSE_GAME]: (wsServer: WsController, data: IClientAction[ACTIONS.PAUSE_GAME]) => {
+  [ACTIONS.PAUSE_GAME](wsServer: WsController, data: IClientAction[ACTIONS.PAUSE_GAME]) {
     wsServer.sendToClient(ACTIONS.PAUSE_GAME, data);
-  },
+  }
 
-  [ACTIONS.END_GAME]: (wsServer: WsController, data: IClientAction[ACTIONS.END_GAME]) => {
+  [ACTIONS.END_GAME](wsServer: WsController, data: IClientAction[ACTIONS.END_GAME]) {
     const wsClients = wsServer.getWsClients({ gameId: data.to.gameId });
 
     if (!wsClients.length) {
@@ -74,5 +73,5 @@ export const clientActions = {
     });
 
     wsServer.sendToClient(ACTIONS.END_GAME, data);
-  },
-};
+  }
+}

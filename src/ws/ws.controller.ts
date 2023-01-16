@@ -1,6 +1,4 @@
 import { gameSessions } from '../game/game-sessions.class';
-import { serverActions, IServerAction } from './actions/server-actions';
-import { gameActions, IGameAction } from './actions/game-actions';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { ROLES } from 'src/constants';
@@ -11,8 +9,11 @@ import { WsGateway } from 'src/ws/gateway/ws.gateway';
 import { maps } from '../game/map/maps.constants';
 import Redis from 'ioredis';
 import { AuthService } from 'src/controllers/auth/auth.service';
-import { clientActions, IClientAction } from './actions/client-actions';
 import { WsGamesState } from './gateway/ws.games-state';
+import { ClientActions, IClientAction } from './actions/client';
+import { GameActions, IGameAction } from './actions/game';
+import { ServerActions, IServerAction } from './actions/server';
+import { WsLoadFileActions } from './actions/load-file';
 
 export class WsController extends WsGateway {
   constructor(
@@ -20,8 +21,12 @@ export class WsController extends WsGateway {
     @InjectRedis(REDIS_NAMESPACE.PUBLISH) private readonly redisPub: Redis,
     protected authService: AuthService,
     readonly wsGamesState: WsGamesState,
+    readonly wsLoadFileActions: WsLoadFileActions,
+    protected clientActions: ClientActions,
+    protected gameActions: GameActions,
+    protected serverActions: ServerActions,
   ) {
-    super(authService, wsGamesState);
+    super(authService, wsGamesState, wsLoadFileActions);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_GAME);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_SERVER);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_CLIENT);
@@ -42,11 +47,11 @@ export class WsController extends WsGateway {
           return;
         }
 
-        if (!clientActions[event]) {
+        if (!this.clientActions[event]) {
           throw Error(`Action name = ${event} does not exist. Message: ${message}`);
         }
 
-        clientActions[event](this, data);
+        this.clientActions[event](this, data);
         return;
       } else if (channel === REDIS_ACTION.PROPAGATE_GAME) {
         if (!data?.to.gameId) {
@@ -58,22 +63,22 @@ export class WsController extends WsGateway {
           return;
         }
 
-        if (!gameActions[event]) {
+        if (!this.gameActions[event]) {
           throw Error(`Action name = ${event} does not exist. Message: ${message}`);
         }
 
-        gameActions[event](this, data);
+        this.gameActions[event](this, data);
       } else if (channel === REDIS_ACTION.PROPAGATE_SERVER) {
         if (!data?.to.gameId) {
           console.error('to.gameId - required parameter');
           return;
         }
 
-        if (!serverActions[event]) {
+        if (!this.serverActions[event]) {
           throw Error(`Action name = ${event} does not exist. Message: ${message}`);
         }
 
-        serverActions[event](this, data);
+        this.serverActions[event](this, data);
       }
     });
 

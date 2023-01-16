@@ -4,9 +4,9 @@ import { DELTA_T } from '../constants';
 import { MissilesClass } from './missiles/missiles.class';
 import { MapClass } from './map/map.class';
 import { ACTIONS } from 'src/interfaces/ws';
-import { IClientAction } from 'src/ws/actions/client-actions';
+import { IClientAction } from 'src/ws/actions/client';
 import { WsController } from '../ws/ws.controller';
-import { IServerAction } from 'src/ws/actions/server-actions';
+import { IServerAction } from 'src/ws/actions/server';
 
 //where key - userId
 export type GameTanksConstructor = ITankClass[];
