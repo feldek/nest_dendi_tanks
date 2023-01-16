@@ -1,6 +1,4 @@
-import { gameSessions } from './game/game-sessions.class';
-import { serverActions, IServerAction } from './gateway/actions/server-actions';
-import { gameActions, IGameAction } from './gateway/actions/game-actions';
+import { GameSessionsClass } from '../game/game-sessions.class';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { ROLES } from 'src/constants';
@@ -8,20 +6,28 @@ import { REDIS_ACTION, REDIS_NAMESPACE } from 'src/constants/redis.constants';
 import { ActionTypes, IWsData, ACTIONS, ModifyWebSocket, ToType, ISchema } from 'src/interfaces/ws';
 import { WsRouterDecorators } from 'src/middlewares';
 import { WsGateway } from 'src/ws/gateway/ws.gateway';
-import { maps } from './game/map/maps.constants';
+import { maps } from '../game/map/maps.constants';
 import Redis from 'ioredis';
 import { AuthService } from 'src/controllers/auth/auth.service';
-import { clientActions, IClientAction } from './gateway/actions/client-actions';
 import { WsGamesState } from './gateway/ws.games-state';
+import { ClientActions, IClientAction } from './actions/client';
+import { GameActions, IGameAction } from './actions/game';
+import { ServerActions, IServerAction } from './actions/server';
+import { WsLoadFileActions } from './actions/load-file';
 
 export class WsController extends WsGateway {
   constructor(
     @InjectRedis(REDIS_NAMESPACE.SUBSCRIBE) private readonly redisSub: Redis,
     @InjectRedis(REDIS_NAMESPACE.PUBLISH) private readonly redisPub: Redis,
-    protected authService: AuthService,
     readonly wsGamesState: WsGamesState,
+    readonly wsLoadFileActions: WsLoadFileActions,
+    protected readonly authService: AuthService,
+    private readonly clientActions: ClientActions,
+    private readonly gameActions: GameActions,
+    private readonly serverActions: ServerActions,
+    private readonly gameSessions: GameSessionsClass,
   ) {
-    super(authService, wsGamesState);
+    super(authService, wsGamesState, wsLoadFileActions);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_GAME);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_SERVER);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_CLIENT);
@@ -42,11 +48,11 @@ export class WsController extends WsGateway {
           return;
         }
 
-        if (!clientActions[event]) {
+        if (!this.clientActions[event]) {
           throw Error(`Action name = ${event} does not exist. Message: ${message}`);
         }
 
-        clientActions[event](this, data);
+        this.clientActions[event](this, data);
         return;
       } else if (channel === REDIS_ACTION.PROPAGATE_GAME) {
         if (!data?.to.gameId) {
@@ -54,26 +60,26 @@ export class WsController extends WsGateway {
           return;
         }
         //skip, if unnecessary node instance
-        if (!gameSessions[data.to.gameId]) {
+        if (!this.gameSessions[data.to.gameId]) {
           return;
         }
 
-        if (!gameActions[event]) {
+        if (!this.gameActions[event]) {
           throw Error(`Action name = ${event} does not exist. Message: ${message}`);
         }
 
-        gameActions[event](this, data);
+        this.gameActions[event](this, data);
       } else if (channel === REDIS_ACTION.PROPAGATE_SERVER) {
         if (!data?.to.gameId) {
           console.error('to.gameId - required parameter');
           return;
         }
 
-        if (!serverActions[event]) {
+        if (!this.serverActions[event]) {
           throw Error(`Action name = ${event} does not exist. Message: ${message}`);
         }
 
-        serverActions[event](this, data);
+        this.serverActions[event](this, data);
       }
     });
 
@@ -162,7 +168,7 @@ export class WsController extends WsGateway {
   } {
     const userId = client.userId;
     const gameId = this.wsGamesState.getNewGameId();
-    gameSessions.createNewGame(
+    this.gameSessions.createNewGame(
       {
         tanks: [{ ...message.payload, userId }],
         map: maps.testMap,
@@ -231,7 +237,7 @@ export class WsController extends WsGateway {
       };
     }
     const gameId = client.gameId;
-    const game = gameSessions[gameId];
+    const game = this.gameSessions[gameId];
 
     game.startGame(this.propagateClientEvent.bind(this), this.propagateServerEvent.bind(this));
     this.propagateServerEvent<IServerAction[ACTIONS.START_GAME]>(ACTIONS.START_GAME, {
@@ -272,7 +278,7 @@ export class WsController extends WsGateway {
     data: IWsData<{ gameId: number }, ToType>;
   } {
     const gameId = message.payload.gameId;
-    const game = gameSessions[gameId];
+    const game = this.gameSessions[gameId];
     game.endGame();
 
     //need propagate to all users

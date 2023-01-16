@@ -1,4 +1,4 @@
-import { DELTA_T } from '../../../constants';
+import { DELTA_T } from '../../constants';
 import { RequireAtLeastOne } from 'src/interfaces/common';
 import { DynamicObjClass, IDynamicObj } from '../common/dynamicObj.class';
 import { WeaponClass } from './weapon.class';

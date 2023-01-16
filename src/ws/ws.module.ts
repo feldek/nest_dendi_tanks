@@ -2,12 +2,11 @@ import { WsGamesState } from './gateway/ws.games-state';
 import { forwardRef, Module } from '@nestjs/common';
 import { AuthModule } from 'src/controllers/auth/auth.module';
 import { WsController } from './ws.controller';
-// import { WsIoGateway } from './io.gateway';
-// import { WsGateway } from './ws.gateway';
+import { GameActionsModule } from './actions/actions.module';
+import { GameSessionsModule } from 'src/game/game-sessions.module';
 
 @Module({
   providers: [WsController, WsGamesState],
-  exports: [WsController],
-  imports: [forwardRef(() => AuthModule)],
+  imports: [forwardRef(() => AuthModule), GameActionsModule, GameSessionsModule],
 })
 export class WSModule {}

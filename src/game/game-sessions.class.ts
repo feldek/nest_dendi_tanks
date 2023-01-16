@@ -1,8 +1,11 @@
+import { Injectable } from '@nestjs/common';
 import { GameClass } from './game.class';
 import { MapClass } from './map/map.class';
 import { ITankClass, TankClass } from './tank/tank.class';
 
 export type TGameId = number;
+
+@Injectable()
 export class GameSessionsClass {
   //TODO: temporary solution, in future move to db
   //save info about all gameIds on other node instances too
@@ -29,5 +32,3 @@ export class GameSessionsClass {
     }
   }
 }
-
-export const gameSessions = new GameSessionsClass();

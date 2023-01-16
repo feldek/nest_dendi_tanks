@@ -2,8 +2,8 @@ import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { RequiredField, RequireOnlyOne } from './common';
 import { WebSocket } from 'ws';
 import { ROLES } from 'src/constants';
-import { ITankClass, TTankControl } from 'src/ws/game/tank/tank.class';
-import { TGameId } from 'src/ws/game/game-sessions.class';
+import { ITankClass, TTankControl } from 'src/game/tank/tank.class';
+import { TGameId } from 'src/game/game-sessions.class';
 
 interface ITargetWs {
   userId: number | null;

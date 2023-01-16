@@ -1,4 +1,4 @@
-import 'test/utils/configs/ws-hook';
+import { addressForTests } from 'test/utils/configs/ws-hook';
 
 import { WsClient } from '../utils/ws-client/ws-client';
 import { ACTIONS } from 'src/interfaces/ws';
@@ -6,7 +6,7 @@ import fs from 'fs';
 
 //crutch
 //for run this test need uncomment method listenBuffer in ws.gateway
-describe.skip('ws', () => {
+describe('ws actions:', () => {
   const userIds = [10];
   let users: WsClient[] = [];
 
@@ -15,7 +15,7 @@ describe.skip('ws', () => {
   });
 
   beforeAll(async () => {
-    users = userIds.map((userId) => new WsClient(userId, false));
+    users = userIds.map((userId) => new WsClient(userId, { port: addressForTests.port }));
 
     await new Promise((resolve) => {
       setTimeout(() => resolve(''), 100);
@@ -32,8 +32,8 @@ describe.skip('ws', () => {
 
     const imagePath = `${__dirname}/test-image.jpg`;
     const newImagePath = `${__dirname}/${newFileName}.${extension}`;
-
     const bufferImage = await fs.promises.readFile(imagePath);
+
     const message = {
       payload: {
         extension,
@@ -42,7 +42,7 @@ describe.skip('ws', () => {
       },
     };
 
-    await users[0].sendWsPromise(ACTIONS.LOAD_IMAGE_TEST, message);
+    await users[0].sendWsBinaryPromise(ACTIONS.LOAD_IMAGE_TEST, message);
     expect(fs.existsSync(newImagePath)).toBe(true);
 
     //remove file

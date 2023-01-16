@@ -1,5 +1,7 @@
+import { Injectable } from '@nestjs/common';
 type AllGamesValueType = { gameId: number; started: boolean; userIds: number[] };
 
+@Injectable()
 export class WsGamesState {
   //userId which connected at this node instance
   private userId: { [key: number]: number } = {};
