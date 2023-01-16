@@ -37,8 +37,6 @@ export class WsClient {
     readKeyboard && this.readKeyboard();
 
     connection.on('open', () => {
-      // console.log('connection on');
-
       const jwtService = new JwtService({
         secret: process.env.ACCESS_PRIVATE_KEY,
         signOptions: {
@@ -63,7 +61,7 @@ export class WsClient {
         if (uuid) {
           emitter.emit(uuid, wsData);
         }
-        console.log(`userId ${userId} event:`, wsData.event, '\n', 'uuid:', wsData.data.uuid);
+        // console.log(`userId ${userId} event:`, wsData.event, '\n', 'uuid:', wsData.data.uuid);
 
         if (showConsoleData && ACTIONS.GAME_SNAPSHOT === wsData.event) {
           this.showInConsole(wsData.data.payload);
@@ -88,6 +86,29 @@ export class WsClient {
 
   public publish<T>(event: ActionTypes, message: IWsData<T | void>) {
     this.connection.send(JSON.stringify({ event, data: message }));
+  }
+
+  sendWsPromise<T>(event: ActionTypes, message: IWsData<T | void>) {
+    const serverExceedTimeout = 2;
+    const uuid = message.uuid || uuidv4();
+    message.uuid = uuid;
+
+    return new Promise((resolve, reject) => {
+      this.publish<T>(event, message);
+
+      const callback = (data) => {
+        data ? resolve(data) : reject(new Error('Unexpected server response.'));
+      };
+
+      emitter.once(uuid, callback);
+
+      setTimeout(() => {
+        if (hasListeners(emitter, uuid)) {
+          reject(new Error(`Timeout exceed, ${serverExceedTimeout} sec`));
+          emitter.off(uuid, callback);
+        }
+      }, serverExceedTimeout * 1000);
+    });
   }
 
   //there is possible send binary data
@@ -123,29 +144,6 @@ export class WsClient {
     });
   }
 
-  sendWsPromise<T>(event: ActionTypes, message: IWsData<T | void>) {
-    const serverExceedTimeout = 2;
-    const uuid = message.uuid || uuidv4();
-    message.uuid = uuid;
-
-    return new Promise((resolve, reject) => {
-      this.publish<T>(event, message);
-
-      const callback = (data) => {
-        data ? resolve(data) : reject(new Error('Unexpected server response.'));
-      };
-
-      emitter.once(uuid, callback);
-
-      setTimeout(() => {
-        if (hasListeners(emitter, uuid)) {
-          reject(new Error(`Timeout exceed, ${serverExceedTimeout} sec`));
-          emitter.off(uuid, callback);
-        }
-      }, serverExceedTimeout * 1000);
-    });
-  }
-
   readKeyboard() {
     readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode(true);
@@ -159,16 +157,19 @@ export class WsClient {
         key.name === 'left' ||
         key.name === 'right'
       ) {
+        this.tankState = 'move';
         this.publish(ACTIONS.TANK_MOVEMENT, {
           uuid: uuidv4(),
-          payload: { direction: key.name },
+          payload: { direction: key.name, state: this.tankState },
         });
       } else if (key.name === 'space') {
         this.publish(ACTIONS.TANK_SHOT, { uuid: uuidv4() });
-      } else if (key.name === 'ctrl') {
+      } else if (key.name === '0') {
+        this.tankState = this.tankState === 'stay' ? 'move' : 'stay';
+
         this.publish(ACTIONS.TANK_MOVEMENT, {
           uuid: uuidv4(),
-          payload: { state: this.tankState === 'stay' ? 'move' : 'stay' },
+          payload: { state: this.tankState },
         });
       }
     });
@@ -185,12 +186,12 @@ export class WsClient {
       style: bg(bgColors[ind], 2),
     }));
 
-    // const landscape = gameObjects.map.blocks.map(({ x, y }) => ({
-    //   key: 'C',
-    //   value: [Math.round(x / 10), Math.round(y / 10)],
-    //   style: bg('magenta', 2),
-    // }));
-    const landscape = [];
+    //@ts-ignore
+    const landscape = gameObjects.blocks.map(({ x, y }) => ({
+      key: 'C',
+      value: [Math.round(x / 10), Math.round(y / 10)],
+      style: bg('magenta', 2),
+    }));
     const missiles = gameObjects.missiles.map((missile) => ({
       key: 'D',
       value: [Math.round(missile.x / 10), Math.round(missile.y / 10)],

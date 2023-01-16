@@ -97,6 +97,8 @@ export class GameClass {
     return {
       tanks: tanksData,
       missiles: this.missiles,
+      //TODO: landscape blocks necessary send only changes(delta from previous blocks)
+      blocks: this.map.blocks,
     };
   }
 

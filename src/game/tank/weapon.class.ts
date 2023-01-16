@@ -12,6 +12,6 @@ export class WeaponClass {
   constructor(params?: IWeaponClass) {
     this.damage = params?.damage ?? 1;
     this.speed = params?.speed ?? 90;
-    this.rateOfFire = params?.rateOfFire ?? 1200;
+    this.rateOfFire = params?.rateOfFire ?? 1000;
   }
 }
