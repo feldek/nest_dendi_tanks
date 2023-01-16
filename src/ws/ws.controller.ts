@@ -1,4 +1,4 @@
-import { gameSessions } from '../game/game-sessions.class';
+import { GameSessionsClass } from '../game/game-sessions.class';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { ROLES } from 'src/constants';
@@ -19,12 +19,13 @@ export class WsController extends WsGateway {
   constructor(
     @InjectRedis(REDIS_NAMESPACE.SUBSCRIBE) private readonly redisSub: Redis,
     @InjectRedis(REDIS_NAMESPACE.PUBLISH) private readonly redisPub: Redis,
-    protected authService: AuthService,
     readonly wsGamesState: WsGamesState,
     readonly wsLoadFileActions: WsLoadFileActions,
-    protected clientActions: ClientActions,
-    protected gameActions: GameActions,
-    protected serverActions: ServerActions,
+    protected readonly authService: AuthService,
+    private readonly clientActions: ClientActions,
+    private readonly gameActions: GameActions,
+    private readonly serverActions: ServerActions,
+    private readonly gameSessions: GameSessionsClass,
   ) {
     super(authService, wsGamesState, wsLoadFileActions);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_GAME);
@@ -59,7 +60,7 @@ export class WsController extends WsGateway {
           return;
         }
         //skip, if unnecessary node instance
-        if (!gameSessions[data.to.gameId]) {
+        if (!this.gameSessions[data.to.gameId]) {
           return;
         }
 
@@ -167,7 +168,7 @@ export class WsController extends WsGateway {
   } {
     const userId = client.userId;
     const gameId = this.wsGamesState.getNewGameId();
-    gameSessions.createNewGame(
+    this.gameSessions.createNewGame(
       {
         tanks: [{ ...message.payload, userId }],
         map: maps.testMap,
@@ -236,7 +237,7 @@ export class WsController extends WsGateway {
       };
     }
     const gameId = client.gameId;
-    const game = gameSessions[gameId];
+    const game = this.gameSessions[gameId];
 
     game.startGame(this.propagateClientEvent.bind(this), this.propagateServerEvent.bind(this));
     this.propagateServerEvent<IServerAction[ACTIONS.START_GAME]>(ACTIONS.START_GAME, {
@@ -277,7 +278,7 @@ export class WsController extends WsGateway {
     data: IWsData<{ gameId: number }, ToType>;
   } {
     const gameId = message.payload.gameId;
-    const game = gameSessions[gameId];
+    const game = this.gameSessions[gameId];
     game.endGame();
 
     //need propagate to all users

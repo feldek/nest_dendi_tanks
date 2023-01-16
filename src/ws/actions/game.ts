@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { gameSessions } from '../../game/game-sessions.class';
 import { ACTIONS, ISchema, IRequiredTo, IRequiredToFrom } from 'src/interfaces/ws';
 import { WsController } from '../ws.controller';
 import { TTankControl } from '../../game/tank/tank.class';
 import { IClientAction } from './client';
 import { IServerAction } from './server';
+import { GameSessionsClass } from 'src/game/game-sessions.class';
 
 export interface IGameAction {
   [ACTIONS.JOIN_TO_GAME]: IRequiredToFrom<ISchema[ACTIONS.JOIN_TO_GAME]>;
@@ -17,10 +17,12 @@ export interface IGameAction {
 
 @Injectable()
 export class GameActions {
+  constructor(private readonly gameSessions: GameSessionsClass) {}
+
   [ACTIONS.JOIN_TO_GAME](wsServer: WsController, data: IGameAction[ACTIONS.JOIN_TO_GAME]) {
     const userId = data.from.userId;
     const { gameId, ...otherParams } = data.payload;
-    const game = gameSessions[gameId];
+    const game = this.gameSessions[gameId];
 
     if (game.gameStarted) {
       wsServer.propagateClientError(ACTIONS.ERROR, {
@@ -35,7 +37,7 @@ export class GameActions {
       return;
     }
 
-    gameSessions.joinToGame(gameId, {
+    this.gameSessions.joinToGame(gameId, {
       ...otherParams,
       userId,
     });
@@ -57,7 +59,7 @@ export class GameActions {
   }
 
   [ACTIONS.PAUSE_GAME](wsServer: WsController, data: IGameAction[ACTIONS.PAUSE_GAME]) {
-    const game = gameSessions[data.to.gameId];
+    const game = this.gameSessions[data.to.gameId];
     const pause = data.payload.pause;
     const changedGameState = game.pauseOnOff(pause);
 
@@ -71,7 +73,7 @@ export class GameActions {
   }
 
   [ACTIONS.FORCE_END_GAME](_wsServer: WsController, data: IGameAction[ACTIONS.FORCE_END_GAME]) {
-    const game = gameSessions[data.to.gameId];
+    const game = this.gameSessions[data.to.gameId];
     game.endGame();
   }
 
@@ -81,20 +83,20 @@ export class GameActions {
   ) {
     const { gameId } = to;
 
-    const tank = gameSessions[gameId].tanks[from.userId];
+    const tank = this.gameSessions[gameId].tanks[from.userId];
     tank.changeMovement(payload);
   }
 
   [ACTIONS.TANK_SHOT](_wsServer: WsController, { from, to }: IGameAction[ACTIONS.TANK_SHOT]) {
-    const tank = gameSessions[to.gameId].tanks[from.userId];
-    tank.shot(gameSessions[to.gameId].missiles);
+    const tank = this.gameSessions[to.gameId].tanks[from.userId];
+    tank.shot(this.gameSessions[to.gameId].missiles);
   }
 
   [ACTIONS.GET_GAME_SNAPSHOT](
     wsServer: WsController,
     { from, to, uuid }: IGameAction[ACTIONS.GET_GAME_SNAPSHOT],
   ) {
-    const game = gameSessions[to.gameId];
+    const game = this.gameSessions[to.gameId];
     const gameSnapshot = game.getGameSnapshot();
 
     wsServer.propagateClientEvent(ACTIONS.GET_GAME_SNAPSHOT, {
