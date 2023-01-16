@@ -1,8 +1,8 @@
 {
-  "name": "nest_shop",
-  "version": "0.0.1",
+  "name": "dendi_tanks",
+  "version": "0.1.1",
   "description": "",
-  "author": "",
+  "author": "feldek",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

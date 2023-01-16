@@ -42,19 +42,10 @@ export class GameActions {
       userId,
     });
 
-    wsServer.propagateClientEvent<IClientAction[ACTIONS.JOIN_TO_GAME]>(ACTIONS.JOIN_TO_GAME, {
-      to: { gameId },
-      uuid: data.uuid,
-      payload: {
-        gameId,
-        message: `UserId = ${userId} successful connected to game`,
-      },
-      from: { userId },
-    });
-
     wsServer.propagateServerEvent<IServerAction[ACTIONS.JOIN_TO_GAME]>(ACTIONS.JOIN_TO_GAME, {
       to: { gameId },
       payload: { userId },
+      uuid: data.uuid,
     });
   }
 

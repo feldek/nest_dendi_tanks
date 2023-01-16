@@ -30,7 +30,7 @@ module.exports = {
     );
 
     await queryInterface.sequelize.query(
-      `INSERT INTO "nest_shop"."roles" ("id", "value", "description")
+      `INSERT INTO "dendi_tanks"."roles" ("id", "value", "description")
        VALUES (DEFAULT, 'admin', 'Admin permissions'),
               (DEFAULT, 'user', 'Usual user permissions');
               `,

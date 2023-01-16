@@ -37,9 +37,13 @@ export class WsGamesState {
   }
 
   addNewGame(gameData: AllGamesValueType) {
-    const { gameId, userIds } = gameData;
-    if (this.userId[userIds[0]]) {
-      this.addGameId({ gameId, userId: userIds[0] });
+    const {
+      gameId,
+      userIds: [userId],
+    } = gameData;
+    if (this.userId[userId]) {
+      this.addGameId({ gameId, userId });
+      this.addUserId(userId);
     }
     this.allGames[gameId] = gameData;
   }

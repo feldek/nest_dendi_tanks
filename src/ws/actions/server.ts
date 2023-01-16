@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ACTIONS, IRequiredTo } from 'src/interfaces/ws';
 import { WsController } from 'src/ws/ws.controller';
+import { IClientAction } from './client';
 
 export interface IServerAction {
   [ACTIONS.CREATE_NEW_GAME]: IRequiredTo<{ userId: number }>;
@@ -27,9 +28,19 @@ export class ServerActions {
 
   [ACTIONS.JOIN_TO_GAME](
     wsServer: WsController,
-    { to: { gameId }, payload: { userId } }: IServerAction[ACTIONS.JOIN_TO_GAME],
+    { to: { gameId }, payload: { userId }, uuid }: IServerAction[ACTIONS.JOIN_TO_GAME],
   ) {
     wsServer.wsGamesState.joinUserToGame({ gameId, userId });
+
+    wsServer.propagateClientEvent<IClientAction[ACTIONS.JOIN_TO_GAME]>(ACTIONS.JOIN_TO_GAME, {
+      to: { gameId },
+      uuid: uuid,
+      payload: {
+        gameId,
+        message: `UserId = ${userId} successful connected to game`,
+      },
+      from: { userId },
+    });
   }
 
   //TODO: this action not exist in game-actions
