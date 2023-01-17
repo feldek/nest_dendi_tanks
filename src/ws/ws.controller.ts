@@ -195,7 +195,7 @@ export class WsController extends WsGateway {
     const gameId = message.payload.gameId;
     const userId = client.userId;
 
-    const game = this.wsGamesState.getGameById(gameId);
+    const game = this.wsGamesState.getStateGameById(gameId);
 
     if (!game) {
       client.sendError({

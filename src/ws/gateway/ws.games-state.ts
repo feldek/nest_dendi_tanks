@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 type AllGamesValueType = { gameId: number; started: boolean; userIds: number[] };
 
 @Injectable()
@@ -7,11 +8,11 @@ export class WsGamesState {
   private userId: { [key: number]: number } = {};
 
   //add gameId, when user(which belongs this node instances) did join to gameId(any node instances)
-  private gameId: { [key: number]: { userIds: number[]; gameId: number } } = {};
+  private gameId: { [key: number]: { userIds: number[] } } = {};
 
   //key = gameId
   //all games on all nodes
-  private allGames: { [key: number]: AllGamesValueType } = {};
+  private stateAllGames: { [key: number]: AllGamesValueType } = {};
 
   addUserId(userId: number) {
     this.userId[userId] = userId;
@@ -21,19 +22,19 @@ export class WsGamesState {
     const { gameId, userId } = params;
     if (this.gameId[gameId]) {
       const userIds = [...this.gameId[gameId].userIds, userId];
-      this.gameId[gameId] = { gameId, userIds };
+      this.gameId[gameId] = { userIds };
       return;
     }
 
-    this.gameId[gameId] = { gameId, userIds: [userId] };
+    this.gameId[gameId] = { userIds: [userId] };
   }
 
   getNotStartedGames() {
-    return Object.values(this.allGames).filter((game) => !game.started);
+    return Object.values(this.stateAllGames).filter((game) => !game.started);
   }
 
-  getGameById(gameId: number) {
-    return this.allGames[gameId];
+  getStateGameById(gameId: number) {
+    return this.stateAllGames[gameId];
   }
 
   addNewGame(gameData: AllGamesValueType) {
@@ -45,7 +46,7 @@ export class WsGamesState {
       this.addGameId({ gameId, userId });
       this.addUserId(userId);
     }
-    this.allGames[gameId] = gameData;
+    this.stateAllGames[gameId] = gameData;
   }
 
   joinUserToGame(params: { userId: number; gameId: number }) {
@@ -54,54 +55,59 @@ export class WsGamesState {
       this.addGameId({ gameId, userId });
     }
 
-    this.allGames[gameId].userIds.push(userId);
+    this.stateAllGames[gameId].userIds.push(userId);
   }
 
   deleteUserId(userId: number) {
     delete this.userId[userId];
   }
 
-  deleteUserFromGame(params: { userId: number; gameId: number }) {
-    const game = this.allGames[params.gameId];
+  leaveFromGame(params: { userId: number; gameId: number }) {
+    this.deleteStateAllGames(params);
+    this.deleteGameId(params);
+  }
+
+  private deleteStateAllGames(params: { userId: number; gameId: number }) {
+    const game = this.stateAllGames[params.gameId];
 
     if (!game) {
+      console.log(`pid = ${process.pid} : stateAllGames.${params.gameId} doesn\'t exist`);
       return;
     }
 
     game.userIds = game.userIds.filter((userId) => userId !== params.userId);
 
-    this.deleteUserIdAtGameId(params);
+    if (!game.userIds.length) {
+      delete this.stateAllGames[params.gameId];
+    }
   }
 
-  deleteUserIdAtGameId(params: { userId: number; gameId: number }) {
-    const existUsersThisGameThisNode = this.gameId[params.gameId].userIds.filter(
-      (userId) => userId !== params.userId,
+  deleteGameId(params: { userId: number; gameId: number }) {
+    const { gameId, userId } = params;
+    const existUsersThisGameThisNode = this.gameId[gameId].userIds.filter(
+      (existedUserId) => existedUserId !== userId,
     );
 
     //if users not left, then delete gameId
-    if (!existUsersThisGameThisNode) {
-      this.deleteGameId(params.gameId);
+    if (!existUsersThisGameThisNode.length) {
+      delete this.gameId[params.gameId];
       return;
     }
 
     this.gameId[params.gameId].userIds = existUsersThisGameThisNode;
   }
 
-  protected deleteGameId(gameId: number) {
+  endGame(gameId: number) {
     delete this.gameId[gameId];
-  }
-
-  deleteGame(gameId: number) {
-    delete this.gameId[gameId];
-    delete this.allGames[gameId];
+    delete this.stateAllGames[gameId];
   }
 
   changeGameStatus(gameId: number, status = true) {
-    this.allGames[gameId].started = status;
+    this.stateAllGames[gameId].started = status;
   }
 
   getNewGameId() {
-    const gameIds = Object.values(this.allGames).map(({ gameId }) => gameId);
+    const gameIds = Object.values(this.stateAllGames).map(({ gameId }) => gameId);
     return gameIds.length ? Math.max(...gameIds) + 1 : 1;
   }
 }

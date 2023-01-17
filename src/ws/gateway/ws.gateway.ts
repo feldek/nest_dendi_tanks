@@ -95,7 +95,7 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     this.wsGamesState.deleteUserId(userId);
 
     if (gameId) {
-      this.wsGamesState.deleteUserIdAtGameId({ gameId: gameId, userId: userId });
+      this.wsGamesState.deleteGameId({ gameId, userId });
     }
     this.logger.log(`Client disconnected: ${userId}`);
   }

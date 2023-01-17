@@ -6,6 +6,7 @@ export interface IMapClass {
     x: number;
     y: number;
   };
+  //there is "x" and "y" - primal key
   blocks: { x: number; y: number; currentDurability: number }[];
 }
 export class MapClass implements IMapClass {

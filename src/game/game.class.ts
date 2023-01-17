@@ -73,7 +73,7 @@ export class GameClass {
       }
 
       const hitToLandscape = this.map.checkMissileDestroyLandscape(missile);
-      //we used inverted value, because if hit was been, then need return false, for deleting missile
+      //we used inverted value, because if hit was been, it need return false, for deleting missile
       return !hitToLandscape;
     });
 
