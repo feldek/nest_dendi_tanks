@@ -1,4 +1,4 @@
-import { Role } from './../../../src/controllers/auth/roles.guard';
+import { Role } from 'src/middlewares/roles.guard';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from 'src/app.module';
@@ -22,4 +22,4 @@ beforeAll(async () => {
   request = supertest(initTestApp.getHttpServer());
 });
 
-afterAll(async() => await initTestApp.close());
+afterAll(async () => await initTestApp.close());

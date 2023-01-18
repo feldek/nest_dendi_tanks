@@ -1,3 +1,4 @@
+import { MapClass } from './../../game/map/map.class';
 import { Injectable } from '@nestjs/common';
 import { RequiredField } from 'src/interfaces/common';
 import { ToType, IRequiredTo, ISchema, ACTIONS } from 'src/interfaces/ws';
@@ -9,7 +10,7 @@ import { WsController } from '../ws.controller';
 export interface IClientAction {
   [ACTIONS.ERROR]: RequiredField<WsErrorType, 'to' | 'payload'>;
   [ACTIONS.JOIN_TO_GAME]: IRequiredTo<{ gameId: number; message: string }, ToType>;
-  [ACTIONS.START_GAME]: IRequiredTo;
+  [ACTIONS.START_GAME]: IRequiredTo<MapClass>;
   [ACTIONS.GAME_SNAPSHOT]: IRequiredTo<{
     tanks: {
       x: number;
@@ -32,11 +33,7 @@ export class ClientActions {
     wsServer.sendToClient(ACTIONS.ERROR, data);
   }
   [ACTIONS.START_GAME](wsServer: WsController, data: IClientAction[ACTIONS.START_GAME]) {
-    const message = {
-      ...data,
-      payload: { message: `GameId ${data.to.gameId} successfully started` },
-    };
-    wsServer.sendToClient(ACTIONS.START_GAME, message);
+    wsServer.sendToClient(ACTIONS.START_GAME, data);
   }
 
   [ACTIONS.JOIN_TO_GAME](wsServer: WsController, data: IClientAction[ACTIONS.JOIN_TO_GAME]) {

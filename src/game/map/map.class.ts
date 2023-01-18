@@ -61,16 +61,16 @@ export class MapClass implements IMapClass {
 
     if (findIndexHit !== -1) {
       const currentDurability = this.blocks[findIndexHit].currentDurability - missile.damage;
-      this.blocks[findIndexHit] = {
-        ...this.blocks[findIndexHit],
-        currentDurability,
-      };
+      this.blocks[findIndexHit] = { ...this.blocks[findIndexHit], currentDurability };
+
       if (currentDurability <= 0) {
-        this.blocks.splice(findIndexHit, 1);
+        //remove elem with index findIndexHit, and sent to client
+        return this.blocks.splice(findIndexHit, 1)[0];
       }
-      return true;
+
+      return this.blocks[findIndexHit];
     }
 
-    return false;
+    return null;
   }
 }

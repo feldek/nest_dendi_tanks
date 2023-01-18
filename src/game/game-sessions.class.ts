@@ -23,7 +23,7 @@ export class GameSessionsClass {
       this[gameId].checkEndGame.bind(this[gameId]),
     );
 
-    this[gameId].userIds.push(tank.userId);
+    this[gameId].addTank(tank.userId);
   }
 
   removeGameById(currentGameId: number) {

@@ -8,12 +8,12 @@ import { WsRouterDecorators } from 'src/middlewares';
 import { WsGateway } from 'src/ws/gateway/ws.gateway';
 import { maps } from '../game/map/maps.constants';
 import Redis from 'ioredis';
-import { AuthService } from 'src/controllers/auth/auth.service';
 import { WsGamesState } from './gateway/ws.games-state';
 import { ClientActions, IClientAction } from './actions/client';
 import { GameActions, IGameAction } from './actions/game';
 import { ServerActions, IServerAction } from './actions/server';
 import { WsLoadFileActions } from './actions/load-file';
+import { TokenService } from 'src/utils/global-modules/token.service';
 
 export class WsController extends WsGateway {
   constructor(
@@ -21,13 +21,13 @@ export class WsController extends WsGateway {
     @InjectRedis(REDIS_NAMESPACE.PUBLISH) private readonly redisPub: Redis,
     readonly wsGamesState: WsGamesState,
     readonly wsLoadFileActions: WsLoadFileActions,
-    protected readonly authService: AuthService,
+    protected readonly tokenService: TokenService,
     private readonly clientActions: ClientActions,
     private readonly gameActions: GameActions,
     private readonly serverActions: ServerActions,
     private readonly gameSessions: GameSessionsClass,
   ) {
-    super(authService, wsGamesState, wsLoadFileActions);
+    super(wsGamesState, wsLoadFileActions);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_GAME);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_SERVER);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_CLIENT);
@@ -130,7 +130,7 @@ export class WsController extends WsGateway {
 
   @WsRouterDecorators(ACTIONS.AUTHENTICATED, [])
   async authenticated(client: ModifyWebSocket, message: IWsData<ISchema[ACTIONS.AUTHENTICATED]>) {
-    const { userId, userRoles } = this.authService.decodeToken<{
+    const { userId, userRoles } = this.tokenService.decodeToken<{
       userId: number;
       userRoles: ROLES[];
     }>(message.payload.token);
@@ -245,6 +245,7 @@ export class WsController extends WsGateway {
     });
     this.propagateClientEvent<IClientAction[ACTIONS.START_GAME]>(ACTIONS.START_GAME, {
       uuid: message.uuid,
+      payload: game.getMap(),
       to: { gameId },
     });
   }

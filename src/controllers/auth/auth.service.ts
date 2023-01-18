@@ -1,6 +1,6 @@
+import { TokenService } from 'src/utils/global-modules/token.service';
 import { ROLES } from 'src/constants';
 import { Injectable, HttpException, UnauthorizedException, Global } from '@nestjs/common';
-import { JwtService, JwtSignOptions, JwtVerifyOptions } from '@nestjs/jwt';
 import { CreateUserDto } from '../users/dto/create-users.dto';
 import { UsersService } from '../users/users.service';
 import bcrypt from 'bcryptjs';
@@ -9,13 +9,13 @@ import { Transaction } from 'sequelize';
 @Global()
 @Injectable()
 export class AuthService {
-  constructor(private userService: UsersService, private jwtService: JwtService) {}
+  constructor(private userService: UsersService, private tokenService: TokenService) {}
 
   async signIn(userDto: CreateUserDto, transaction: Transaction) {
     await this.validateUser(userDto, transaction);
     const user = await this.userService.getUserRoles({ email: userDto.email }, transaction);
 
-    return this.generateToken({ userId: user.id, userRoles: user.roles });
+    return this.tokenService.generateToken({ userId: user.id, userRoles: user.roles });
   }
 
   async signUp(userDto: CreateUserDto, transaction?: Transaction) {
@@ -33,32 +33,32 @@ export class AuthService {
       ROLES.USER,
       transaction,
     );
-    const token = this.generateToken({ userId: user.id, userRoles: [role] });
+    const token = this.tokenService.generateToken({ userId: user.id, userRoles: [role] });
     return token;
   }
 
-  generateToken(params: { userId: number; userRoles: ROLES[] }, jwtOptions?: JwtSignOptions) {
-    return {
-      access_token: this.jwtService.sign(params, {
-        secret: process.env.ACCESS_PRIVATE_KEY,
-        ...jwtOptions,
-      }),
-    };
-  }
+  // generateToken(params: { userId: number; userRoles: ROLES[] }, jwtOptions?: JwtSignOptions) {
+  //   return {
+  //     access_token: this.jwtService.sign(params, {
+  //       secret: process.env.ACCESS_PRIVATE_KEY,
+  //       ...jwtOptions,
+  //     }),
+  //   };
+  // }
 
-  decodeToken<T extends object = any>(token: string, jwtOptions?: JwtVerifyOptions): T {
-    try {
-      return this.jwtService.verify<T>(token, {
-        secret: process.env.ACCESS_PRIVATE_KEY,
-        ...jwtOptions,
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new HttpException(error.message, 401);
-      }
-      throw error;
-    }
-  }
+  // decodeToken<T extends object = any>(token: string, jwtOptions?: JwtVerifyOptions): T {
+  //   try {
+  //     return this.jwtService.verify<T>(token, {
+  //       secret: process.env.ACCESS_PRIVATE_KEY,
+  //       ...jwtOptions,
+  //     });
+  //   } catch (error) {
+  //     if (error instanceof Error) {
+  //       throw new HttpException(error.message, 401);
+  //     }
+  //     throw error;
+  //   }
+  // }
 
   private async validateUser(userDto: CreateUserDto, transaction: Transaction) {
     const user = await this.userService.getUserByEmail(userDto.email, transaction);

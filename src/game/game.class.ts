@@ -2,7 +2,7 @@ import { IntervalTimer } from './common/interval.class';
 import { ITankClass, TankClass } from './tank/tank.class';
 import { DELTA_T } from '../constants';
 import { MissilesClass } from './missiles/missiles.class';
-import { MapClass } from './map/map.class';
+import { IMapClass, MapClass } from './map/map.class';
 import { ACTIONS } from 'src/interfaces/ws';
 import { IClientAction } from 'src/ws/actions/client';
 import { WsController } from '../ws/ws.controller';
@@ -13,11 +13,13 @@ export type GameTanksConstructor = ITankClass[];
 export type TGameTanks = { [key: number]: TankClass };
 
 export class GameClass {
-  map: MapClass;
-  userIds: number[];
+  private map: MapClass;
+  //get sum info about hit to landscape
+  private changeOfLandscapeState: IMapClass['blocks'] = [];
+  private userIds: number[];
+  private gameState: IntervalTimer;
   tanks: TGameTanks;
   missiles: MissilesClass[];
-  gameState: IntervalTimer;
   gameStarted: boolean = false;
   propagateClientEvent: InstanceType<typeof WsController>['propagateClientEvent'] | null = null;
   propagateServerEvent: InstanceType<typeof WsController>['propagateServerEvent'] | null = null;
@@ -35,7 +37,12 @@ export class GameClass {
     this.gameState = new IntervalTimer(() => this.calculateOneStep(), DELTA_T * 1000);
   }
 
-  calculateOneStep() {
+  getMap() {
+    return this.map;
+  }
+
+  private calculateOneStep() {
+    this.changeOfLandscapeState = [];
     //calculated new tank coordinates
     this.userIds.forEach((userId) => {
       const tank = this.tanks[userId];
@@ -73,6 +80,10 @@ export class GameClass {
       }
 
       const hitToLandscape = this.map.checkMissileDestroyLandscape(missile);
+
+      if (hitToLandscape) {
+        this.changeOfLandscapeState.push(hitToLandscape);
+      }
       //we used inverted value, because if hit was been, it need return false, for deleting missile
       return !hitToLandscape;
     });
@@ -97,9 +108,12 @@ export class GameClass {
     return {
       tanks: tanksData,
       missiles: this.missiles,
-      //TODO: landscape blocks necessary send only changes(delta from previous blocks)
-      blocks: this.map.blocks,
+      blocks: this.changeOfLandscapeState,
     };
+  }
+
+  addTank(userId: number) {
+    this.userIds.push(userId);
   }
 
   checkEndGame() {

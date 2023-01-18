@@ -10,11 +10,13 @@ import { RolesModule } from 'src/controllers/roles/roles.module';
 import { AuthModule } from 'src/controllers/auth/auth.module';
 import { WSModule } from './ws/ws.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { GlobalModule } from './utils/global-modules/global.module';
 
 @Module({
   controllers: [],
   providers: [],
   imports: [
+    GlobalModule,
     WSModule,
     ConfigModule.forRoot({ envFilePath: `.env` }),
     SequelizeModule.forRoot({

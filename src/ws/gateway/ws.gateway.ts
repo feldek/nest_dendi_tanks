@@ -19,7 +19,6 @@ import {
   IRequiredTo,
 } from 'src/interfaces/ws';
 import { Server } from 'ws';
-import { AuthService } from 'src/controllers/auth/auth.service';
 import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { deserialize } from 'bson';
 
@@ -30,11 +29,7 @@ import { deserialize } from 'bson';
   },
 })
 export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  constructor(
-    protected authService: AuthService,
-    readonly wsGamesState: WsGamesState,
-    readonly wsLoadFileActions: WsLoadFileActions,
-  ) {}
+  constructor(readonly wsGamesState: WsGamesState, readonly wsLoadFileActions: WsLoadFileActions) {}
 
   @WebSocketServer()
   server: Server<ModifyWebSocket>;
