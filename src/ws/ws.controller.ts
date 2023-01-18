@@ -14,6 +14,7 @@ import { GameActions, IGameAction } from './actions/game';
 import { ServerActions, IServerAction } from './actions/server';
 import { WsLoadFileActions } from './actions/load-file';
 import { TokenService } from 'src/utils/global-modules/token.service';
+import { cloneDeep } from 'lodash';
 
 export class WsController extends WsGateway {
   constructor(
@@ -171,7 +172,7 @@ export class WsController extends WsGateway {
     this.gameSessions.createNewGame(
       {
         tanks: [{ ...message.payload, userId }],
-        map: maps.testMap,
+        map: cloneDeep(maps.testMap),
       },
       gameId,
     );
