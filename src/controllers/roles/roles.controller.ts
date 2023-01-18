@@ -4,7 +4,7 @@ import { CreateRoleDto } from './dto';
 import { RolesService } from './roles.service';
 import { Body, Controller, Delete, Get, Param, Post, Request } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { RoleGuard } from '../auth/roles.guard';
+import { RoleGuard } from 'src/middlewares/roles.guard';
 
 @ApiTags('Role')
 @Controller('roles')

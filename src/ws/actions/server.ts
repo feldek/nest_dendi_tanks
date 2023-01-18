@@ -48,7 +48,7 @@ export class ServerActions {
     wsServer: WsController,
     { to: { gameId }, payload: { userId } }: IServerAction[ACTIONS.LEAVE_GAME],
   ) {
-    wsServer.wsGamesState.deleteUserFromGame({ gameId, userId });
+    wsServer.wsGamesState.leaveFromGame({ gameId, userId });
   }
 
   // [GAME_ACTIONS.FORCE_END_GAME] (
@@ -64,6 +64,6 @@ export class ServerActions {
   // },
 
   [ACTIONS.END_GAME](wsServer: WsController, { to: { gameId } }: IServerAction[ACTIONS.END_GAME]) {
-    wsServer.wsGamesState.deleteGame(gameId);
+    wsServer.wsGamesState.endGame(gameId);
   }
 }

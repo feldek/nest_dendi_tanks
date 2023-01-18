@@ -1,5 +1,6 @@
 import { addressForTests } from 'test/utils/configs/ws-hook';
 
+import { maps } from './../../src/game/map/maps.constants';
 import { WsClient } from '../utils/ws-client/ws-client';
 import { ACTIONS } from 'src/interfaces/ws';
 import { freezeTime } from 'test/utils/common';
@@ -67,7 +68,8 @@ describe('ws actions:', () => {
   it('START_GAME', async () => {
     const { data }: any = await users[0].sendWsPromise(ACTIONS.START_GAME, {});
 
-    expect(typeof data.payload.message).toBe('string');
+    expect(JSON.stringify(data.payload.size)).toBe(JSON.stringify(maps.testMap.size));
+    expect(JSON.stringify(data.payload.blocks)).toBe(JSON.stringify(maps.testMap.blocks));
     expect(data.to.gameId).toBe(gameId);
 
     const pauseGame: any = await users[0].sendWsPromise(ACTIONS.PAUSE_GAME, {

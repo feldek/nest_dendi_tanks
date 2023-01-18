@@ -1,5 +1,6 @@
 require('dotenv').config();
 
+import { MapClass } from './../../../src/game/map/map.class';
 import { v4 as uuidv4 } from 'uuid';
 import { ACTIONS, ActionTypes, IWsData } from 'src/interfaces/ws';
 import WebSocket from 'ws';
@@ -27,6 +28,10 @@ const bgColors = {
 
 export class WsClient {
   private tankState: 'stay' | 'move' | 'hold' = 'stay';
+  map: { size: MapClass['size']; blocks: MapClass['blocks'] } = {
+    blocks: [],
+    size: { x: 300, y: 300 },
+  };
   connection: WebSocket;
 
   constructor(userId, options: { port: number }, showConsoleData = false, readKeyboard = false) {
@@ -64,8 +69,34 @@ export class WsClient {
         // console.log(`userId ${userId} event:`, wsData.event, '\n', 'uuid:', wsData.data.uuid);
 
         if (showConsoleData && ACTIONS.GAME_SNAPSHOT === wsData.event) {
+          const incomingBlocks = wsData.data.payload.blocks as InstanceType<
+            typeof WsClient
+          >['map']['blocks'];
+
+          if (incomingBlocks.length) {
+            incomingBlocks.forEach((block) => {
+              const blockIndex = this.map.blocks.findIndex(
+                (existingBlock) => existingBlock.y === block.y && existingBlock.x === block.x,
+              );
+
+              if (blockIndex === -1) {
+                return;
+              }
+
+              if (block.currentDurability <= 0) {
+                this.map.blocks.splice(blockIndex, 1);
+                return;
+              }
+
+              this.map.blocks[blockIndex] = block;
+            });
+          }
+
           this.showInConsole(wsData.data.payload);
 
+          return;
+        } else if (ACTIONS.START_GAME === wsData.event) {
+          this.map = wsData.data.payload;
           return;
         } else if (ACTIONS.ERROR === wsData.event) {
           console.log(wsData.data);
@@ -186,8 +217,7 @@ export class WsClient {
       style: bg(bgColors[ind], 2),
     }));
 
-    //@ts-ignore
-    const landscape = gameObjects.blocks.map(({ x, y }) => ({
+    const landscape = this.map.blocks.map(({ x, y }) => ({
       key: 'C',
       value: [Math.round(x / 10), Math.round(y / 10)],
       style: bg('magenta', 2),
