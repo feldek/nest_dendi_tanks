@@ -99,7 +99,7 @@ export class WsClient {
           this.map = wsData.data.payload;
           return;
         } else if (ACTIONS.ERROR === wsData.event) {
-          console.log(wsData.data);
+          console.log(`userId: ${userId} data: `, wsData.data);
           return;
         } else {
           showConsoleData &&

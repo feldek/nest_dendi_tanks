@@ -1,6 +1,6 @@
 import { WsLoadFileActions } from './../actions/load-file';
 import { WsGamesState } from './ws.games-state';
-import { RequiredField, RequireOnlyOne } from 'src/interfaces/common';
+import { RequiredField } from 'src/interfaces/common';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   WebSocketGateway,
@@ -38,47 +38,65 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
 
   //nest expects an object to have the format { event: string, data: {...any} }
   //it's unnecessary but recommended
-  sendToClient<P>(event: ActionTypes, message: IRequiredTo<P, ToType>) {
-    const listWsClients = Array.from(this.server.clients);
-    let userTarget: ModifyWebSocket[] = listWsClients;
-
-    if (!message.to.broadcast) {
-      userTarget = Object.entries(message.to)
-        // targetName - one of key at field message.to: { userId, group, broadcast }
-        .map(([targetName, targetValue]) =>
-          listWsClients.filter((user) => {
-            const currentUserTarget = Array.isArray(user[targetName])
-              ? user[targetName]
-              : [user[targetName]];
-
-            const currentTargetValue = Array.isArray(targetValue) ? targetValue : [targetValue];
-            return intersection(currentUserTarget, currentTargetValue).length;
-          }),
-        )
-        .flat();
-    }
+  sendToClient<P>(event: ActionTypes, data: IRequiredTo<P, ToType>) {
+    const userTarget: ModifyWebSocket[] = this.getWsClients(data.to);
 
     userTarget.forEach((user) => {
       // @ts-ignore
-      user.send(JSON.stringify(this.generateResponse<P, ToType>(event, message)));
+      user.send(JSON.stringify(this.generateResponse<P, ToType>(event, data)));
     });
   }
 
-  generateResponse<P, T extends ToType>(event: ActionTypes, data: IWsData<P, T>) {
+  //TODO: { message: string } | unknown define how unknown, need { message: string } also
+  sendErrorToClient(event: ActionTypes, data: IRequiredTo<{ message: string } | unknown, ToType>) {
+    const { payload } = data;
+    const userTarget: ModifyWebSocket[] = this.getWsClients(data.to);
+    const message =
+      payload instanceof Error
+        ? { message: payload.message, name: payload.name }
+        : {
+            //@ts-ignore
+            message: payload.message || 'Unknown Error',
+          };
+
+    userTarget.forEach((user) => {
+      user.send(
+        JSON.stringify(
+          this.generateResponse<{ message: string; name?: string }, ToType>(ACTIONS.ERROR, {
+            ...data,
+            event,
+            payload: message,
+          }),
+        ),
+      );
+    });
+  }
+
+  generateResponse<P, T extends ToType>(
+    event: ActionTypes,
+    data: IWsData<P, T> & { event?: ACTIONS },
+  ) {
     return { event, data };
   }
 
-  getWsClients(
-    data: RequireOnlyOne<{ userId: number[] | number; gameId: number }, 'userId' | 'gameId'>,
-  ) {
+  getWsClients(data: ToType): ModifyWebSocket[] {
     const listWsClients = Array.from(this.server.clients);
-    if (data.userId && Array.isArray(data.userId)) {
-      return listWsClients.filter((client) => client.userId === data.userId);
+    let findWsClients: ModifyWebSocket[] = [];
+
+    if (data.gameId) {
+      findWsClients = listWsClients.filter((client) => client.gameId === data.gameId);
     } else if (data.userId) {
-      return [listWsClients.find((client) => client.userId === data.userId)];
-    } else if (data.gameId) {
-      return listWsClients.filter((client) => client.gameId === data.gameId);
+      const client = listWsClients.find((client) => client.userId === data.userId);
+      findWsClients = client ? [client] : [];
+    } else if (data.userIds && Array.isArray(data.userIds)) {
+      findWsClients = listWsClients.filter((client) => data.userIds.includes(client.gameId));
+    } else if (data.broadcast) {
+      findWsClients = listWsClients;
+    } else if (data.groups && Array.isArray(data.groups)) {
+      findWsClients = listWsClients.filter((client) => intersection(data.groups, client.groups));
     }
+
+    return findWsClients;
   }
 
   afterInit(server: Server) {
