@@ -1,3 +1,4 @@
+import { ToType, ToTypeKeys } from 'src/interfaces/ws';
 import { Injectable } from '@nestjs/common';
 
 type AllGamesValueType = { gameId: number; started: boolean; userIds: number[] };
@@ -13,6 +14,39 @@ export class WsGamesState {
   //key = gameId
   //all games on all nodes
   private stateAllGames: { [key: number]: AllGamesValueType } = {};
+
+  private groups: { [key: string]: string };
+
+  getUserIds() {
+    return this.userId;
+  }
+
+  //check existing user by params (to)
+  checkExistingUser = (to: ToType): boolean => {
+    const existingFields = {
+      gameId(value: number) {
+        return !!this.gameId[value];
+      },
+      userId(value: number) {
+        return !!this.userId[value];
+      },
+      broadcast() {
+        return true;
+      },
+      groups(values: string[]) {
+        return !!values.find((value) => this.groups[value]);
+      },
+      userIds(userIds: number[]) {
+        const atLeastOneUser = userIds.find((userId) => this.userId[userId]);
+        return !!atLeastOneUser;
+      },
+    };
+
+    //TODO: handle all variants
+    const targetName = Object.keys(to)[0] as ToTypeKeys;
+
+    return existingFields[targetName].call(this, to[targetName]);
+  };
 
   addUserId(userId: number) {
     this.userId[userId] = userId;

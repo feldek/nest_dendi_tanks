@@ -14,7 +14,7 @@ import { GameActions, IGameAction } from './actions/game';
 import { ServerActions, IServerAction } from './actions/server';
 import { WsLoadFileActions } from './actions/load-file';
 import { TokenService } from 'src/utils/global-modules/token.service';
-import { cloneDeep } from 'lodash';
+import { cloneDeep, isEmpty } from 'lodash';
 
 export class WsController extends WsGateway {
   constructor(
@@ -34,27 +34,39 @@ export class WsController extends WsGateway {
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_CLIENT);
 
     this.redisSub.on('message', (channel: REDIS_ACTION, message) => {
-      const { event, data } = JSON.parse(message) as { event: ActionTypes; data: IWsData<any> };
+      const { event, data } = JSON.parse(message) as {
+        event: ActionTypes;
+        data: IWsData<any, ToType>;
+      };
 
       if (channel === REDIS_ACTION.PROPAGATE_CLIENT) {
         if (!data?.to) {
           console.error('to - required parameter', message);
           return;
         }
-
         //check existing receiver target on this server (gameId, userId)
         //right now you can set only one receiver
-        const targetName = Object.keys(data.to)[0] as 'userId' | 'gameId';
-        if (!this.wsGamesState[targetName][data.to[targetName]]) {
+
+        const checkUsers = this.wsGamesState.checkExistingUser.bind(this)(data.to);
+
+        if (!checkUsers) {
           return;
         }
 
-        if (!this.clientActions[event]) {
-          throw Error(`Action name = ${event} does not exist. Message: ${message}`);
-        }
+        try {
+          if (!this.clientActions[event]) {
+            throw Error(`Action name = ${event} does not exist. Message: ${message}`);
+          }
 
-        this.clientActions[event](this, data);
-        return;
+          this.clientActions[event](this, data);
+          return;
+        } catch (error) {
+          this.sendErrorToClient(event, {
+            payload: error,
+            uuid: message.uuid,
+            to: data.to,
+          });
+        }
       } else if (channel === REDIS_ACTION.PROPAGATE_GAME) {
         if (!data?.to.gameId) {
           console.error('to.gameId -required parameter');
@@ -65,22 +77,41 @@ export class WsController extends WsGateway {
           return;
         }
 
-        if (!this.gameActions[event]) {
-          throw Error(`Action name = ${event} does not exist. Message: ${message}`);
-        }
+        try {
+          if (!this.gameActions[event]) {
+            throw Error(`Action name = ${event} does not exist. Message: ${message}`);
+          }
 
-        this.gameActions[event](this, data);
+          this.gameActions[event](this, data);
+        } catch (error) {
+          this.sendErrorToClient(event, {
+            payload: error,
+            uuid: message.uuid,
+            to: data.to,
+          });
+        }
       } else if (channel === REDIS_ACTION.PROPAGATE_SERVER) {
         if (!data?.to.gameId) {
           console.error('to.gameId - required parameter');
           return;
         }
+        try {
+          if (!this.serverActions[event]) {
+            throw Error(`Action name = ${event} does not exist. Message: ${message}`);
+          }
 
-        if (!this.serverActions[event]) {
-          throw Error(`Action name = ${event} does not exist. Message: ${message}`);
+          this.serverActions[event](this, data);
+        } catch (error) {
+          if (isEmpty(data.to)) {
+            return;
+          }
+
+          this.sendErrorToClient(event, {
+            payload: error,
+            uuid: message.uuid,
+            to: data.to,
+          });
         }
-
-        this.serverActions[event](this, data);
       }
     });
 
