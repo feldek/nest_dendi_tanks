@@ -9,7 +9,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { intersection } from 'lodash';
+import { intersection, isEmpty } from 'lodash';
 import {
   ACTIONS,
   ActionTypes,
@@ -21,6 +21,12 @@ import {
 import { Server } from 'ws';
 import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { deserialize } from 'bson';
+import { Redis } from 'ioredis';
+import { REDIS_ACTION } from 'src/constants/redis.constants';
+import { GameSessionsClass } from 'src/game/game-sessions.class';
+import { HandleClient } from '../actions/client/handler';
+import { HandleGame } from '../actions/game/handler';
+import { HandleServer } from '../actions/server/handler';
 
 @Injectable()
 @WebSocketGateway({
@@ -29,12 +35,114 @@ import { deserialize } from 'bson';
   },
 })
 export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  constructor(readonly wsGamesState: WsGamesState, readonly wsLoadFileActions: WsLoadFileActions) {}
-
   @WebSocketServer()
   server: Server<ModifyWebSocket>;
 
   protected logger: Logger = new Logger('AppGateway');
+
+  constructor(
+    readonly wsGamesState: WsGamesState,
+    readonly wsLoadFileActions: WsLoadFileActions,
+    readonly redisSub: Redis,
+
+    readonly gameSessions: GameSessionsClass,
+    readonly handleClient: HandleClient,
+    readonly handleGame: HandleGame,
+    readonly handleServer: HandleServer,
+  ) {
+    this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_GAME);
+    this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_SERVER);
+    this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_CLIENT);
+    this.redisHandleActions();
+  }
+
+  private redisHandleActions() {
+    this.redisSub.on('message', (channel: REDIS_ACTION, message) => {
+      const { event, data } = JSON.parse(message) as {
+        event: ActionTypes;
+        data: IWsData<any, ToType>;
+      };
+
+      if (channel === REDIS_ACTION.PROPAGATE_CLIENT) {
+        if (!data?.to) {
+          console.error('to - required parameter', message);
+          return;
+        }
+        //check existing receiver target on this server (gameId, userId)
+        //right now you can set only one receiver
+
+        const checkUsers = this.wsGamesState.checkExistingUser.bind(this)(data.to);
+
+        if (!checkUsers) {
+          return;
+        }
+
+        try {
+          if (!this.handleClient[event]) {
+            throw Error(`Action name = ${event} does not exist. Message: ${message}`);
+          }
+
+          this.handleClient[event](this, data);
+          return;
+        } catch (error) {
+          this.sendErrorToClient(event, {
+            payload: error,
+            uuid: message.uuid,
+            to: data.to,
+          });
+        }
+      } else if (channel === REDIS_ACTION.PROPAGATE_GAME) {
+        if (!data?.to.gameId) {
+          console.error('to.gameId -required parameter');
+          return;
+        }
+        //skip, if unnecessary node instance
+        if (!this.gameSessions[data.to.gameId]) {
+          return;
+        }
+
+        try {
+          if (!this.handleGame[event]) {
+            throw Error(`Action name = ${event} does not exist. Message: ${message}`);
+          }
+
+          this.handleGame[event](this, data);
+        } catch (error) {
+          this.sendErrorToClient(event, {
+            payload: error,
+            uuid: message.uuid,
+            to: data.to,
+          });
+        }
+      } else if (channel === REDIS_ACTION.PROPAGATE_SERVER) {
+        if (!data?.to.gameId) {
+          console.error('to.gameId - required parameter');
+          return;
+        }
+        try {
+          if (!this.handleServer[event]) {
+            throw Error(`Action name = ${event} does not exist. Message: ${message}`);
+          }
+
+          this.handleServer[event](this, data);
+        } catch (error) {
+          if (isEmpty(data.to)) {
+            return;
+          }
+
+          this.sendErrorToClient(event, {
+            payload: error,
+            uuid: message.uuid,
+            to: data.to,
+          });
+        }
+      }
+    });
+
+    this.redisSub.on('error', (err) => {
+      console.log('redisSub ERROR', err);
+    });
+  }
 
   //nest expects an object to have the format { event: string, data: {...any} }
   //it's unnecessary but recommended
