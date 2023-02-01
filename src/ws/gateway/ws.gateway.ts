@@ -1,4 +1,4 @@
-import { WsLoadFileActions } from './../actions/load-file';
+import { WsLoadFileActions } from '../actions/load-file-test/handler';
 import { WsGamesState } from './ws.games-state';
 import { RequiredField } from 'src/interfaces/common';
 import { Injectable, Logger } from '@nestjs/common';

@@ -1,13 +1,13 @@
-import { MapClass } from './../../game/map/map.class';
+import { MapClass } from 'src/game/map/map.class';
 import { Injectable } from '@nestjs/common';
 import { RequiredField } from 'src/interfaces/common';
 import { ToType, IRequiredTo, ISchema, ACTIONS } from 'src/interfaces/ws';
 import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { directionType } from 'src/game/common/dynamicObj.class';
 import { MissilesClass } from 'src/game/missiles/missiles.class';
-import { WsController } from '../ws.controller';
+import { WsController } from 'src/ws/controller/controller';
 
-export interface IClientAction {
+export interface IHandleClient {
   [ACTIONS.ERROR]: RequiredField<WsErrorType, 'to' | 'payload'>;
   [ACTIONS.JOIN_TO_GAME]: IRequiredTo<{ gameId: number; message: string }, ToType>;
   [ACTIONS.START_GAME]: IRequiredTo<MapClass>;
@@ -28,15 +28,15 @@ export interface IClientAction {
 
 // needed to inform all node instances about event
 @Injectable()
-export class ClientActions {
-  [ACTIONS.ERROR](wsServer: WsController, data: IClientAction[ACTIONS.ERROR]) {
+export class HandleClient {
+  [ACTIONS.ERROR](wsServer: WsController, data: IHandleClient[ACTIONS.ERROR]) {
     wsServer.sendToClient(ACTIONS.ERROR, data);
   }
-  [ACTIONS.START_GAME](wsServer: WsController, data: IClientAction[ACTIONS.START_GAME]) {
+  [ACTIONS.START_GAME](wsServer: WsController, data: IHandleClient[ACTIONS.START_GAME]) {
     wsServer.sendToClient(ACTIONS.START_GAME, data);
   }
 
-  [ACTIONS.JOIN_TO_GAME](wsServer: WsController, data: IClientAction[ACTIONS.JOIN_TO_GAME]) {
+  [ACTIONS.JOIN_TO_GAME](wsServer: WsController, data: IHandleClient[ACTIONS.JOIN_TO_GAME]) {
     const [client] = wsServer.getWsClients({ userId: data.from.userId });
 
     if (!client) {
@@ -46,19 +46,19 @@ export class ClientActions {
     wsServer.sendToClient(ACTIONS.JOIN_TO_GAME, data);
   }
 
-  [ACTIONS.GAME_SNAPSHOT](wsServer: WsController, data: IClientAction[ACTIONS.GAME_SNAPSHOT]) {
+  [ACTIONS.GAME_SNAPSHOT](wsServer: WsController, data: IHandleClient[ACTIONS.GAME_SNAPSHOT]) {
     wsServer.sendToClient(ACTIONS.GAME_SNAPSHOT, data);
   }
 
-  [ACTIONS.GET_GAME_SNAPSHOT](wsServer: WsController, data: IClientAction[ACTIONS.GAME_SNAPSHOT]) {
+  [ACTIONS.GET_GAME_SNAPSHOT](wsServer: WsController, data: IHandleClient[ACTIONS.GAME_SNAPSHOT]) {
     wsServer.sendToClient(ACTIONS.GET_GAME_SNAPSHOT, data);
   }
 
-  [ACTIONS.PAUSE_GAME](wsServer: WsController, data: IClientAction[ACTIONS.PAUSE_GAME]) {
+  [ACTIONS.PAUSE_GAME](wsServer: WsController, data: IHandleClient[ACTIONS.PAUSE_GAME]) {
     wsServer.sendToClient(ACTIONS.PAUSE_GAME, data);
   }
 
-  [ACTIONS.END_GAME](wsServer: WsController, data: IClientAction[ACTIONS.END_GAME]) {
+  [ACTIONS.END_GAME](wsServer: WsController, data: IHandleClient[ACTIONS.END_GAME]) {
     const wsClients = wsServer.getWsClients({ gameId: data.to.gameId });
 
     if (!wsClients.length) {

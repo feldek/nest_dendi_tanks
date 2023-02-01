@@ -1,5 +1,4 @@
 import { addressForTests } from 'test/utils/configs/ws-hook';
-
 import { maps } from './../../src/game/map/maps.constants';
 import { WsClient } from '../utils/ws-client/ws-client';
 import { ACTIONS } from 'src/interfaces/ws';
