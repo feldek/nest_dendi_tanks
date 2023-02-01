@@ -5,13 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { ACTIONS, ActionTypes, IWsData } from 'src/interfaces/ws';
 import WebSocket from 'ws';
 import readline from 'readline';
-import { IClientAction } from 'src/ws/actions/client';
 import { scatter, bg, fg } from 'ervy';
 import { JwtService } from '@nestjs/jwt';
 import { ROLES } from 'src/constants';
 import ee from 'event-emitter';
 import hasListeners from 'event-emitter/has-listeners';
 import { serialize } from 'bson';
+import { IHandleClient } from 'src/ws/actions/client/handler';
 
 const emitter = ee();
 
@@ -206,7 +206,7 @@ export class WsClient {
     });
   }
 
-  showInConsole(gameObjects: IClientAction[ACTIONS.GAME_SNAPSHOT]['payload']) {
+  showInConsole(gameObjects: IHandleClient[ACTIONS.GAME_SNAPSHOT]['payload']) {
     if (!gameObjects.tanks[0]) {
       return;
     }

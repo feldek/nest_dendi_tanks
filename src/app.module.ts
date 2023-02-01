@@ -8,7 +8,7 @@ import { UserRolesEntity } from 'src/models/user_roles.model';
 import { UsersModule } from 'src/controllers/users/users.module';
 import { RolesModule } from 'src/controllers/roles/roles.module';
 import { AuthModule } from 'src/controllers/auth/auth.module';
-import { WSModule } from './ws/ws.module';
+import { WSModule } from './ws/controller/ws.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { GlobalModule } from './utils/global-modules/global.module';
 

@@ -1,4 +1,5 @@
-import { GameSessionsClass } from '../game/game-sessions.class';
+import { EmitServer } from './../actions/server/emitter';
+import { GameSessionsClass } from '../../game/game-sessions.class';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { ROLES } from 'src/constants';
@@ -6,137 +7,46 @@ import { REDIS_ACTION, REDIS_NAMESPACE } from 'src/constants/redis.constants';
 import { ActionTypes, IWsData, ACTIONS, ModifyWebSocket, ToType, ISchema } from 'src/interfaces/ws';
 import { WsRouterDecorators } from 'src/middlewares';
 import { WsGateway } from 'src/ws/gateway/ws.gateway';
-import { maps } from '../game/map/maps.constants';
+import { maps } from '../../game/map/maps.constants';
 import Redis from 'ioredis';
-import { WsGamesState } from './gateway/ws.games-state';
-import { ClientActions, IClientAction } from './actions/client';
-import { GameActions, IGameAction } from './actions/game';
-import { ServerActions, IServerAction } from './actions/server';
-import { WsLoadFileActions } from './actions/load-file';
+import { WsGamesState } from '../gateway/ws.games-state';
+import { HandleClient } from '../actions/client/handler';
+import { HandleGame, IHandleGame } from '../actions/game/handler';
+import { HandleServer, IHandleServer } from '../actions/server/handler';
+import { WsLoadFileActions } from '../actions/load-file-test/handler';
 import { TokenService } from 'src/utils/global-modules/token.service';
-import { cloneDeep, isEmpty } from 'lodash';
+import { cloneDeep } from 'lodash';
+import { redisSubHandleActions } from '../gateway/ws.redis-sub-handle-actions';
+import { EmitClient } from '../actions/client/emitter';
+import { EmitGame } from '../actions/game/emitter';
+import { RequiredField } from 'src/interfaces/common';
 
 export class WsController extends WsGateway {
   constructor(
-    @InjectRedis(REDIS_NAMESPACE.SUBSCRIBE) private readonly redisSub: Redis,
-    @InjectRedis(REDIS_NAMESPACE.PUBLISH) private readonly redisPub: Redis,
+    @InjectRedis(REDIS_NAMESPACE.SUBSCRIBE) readonly redisSub: Redis,
+    @InjectRedis(REDIS_NAMESPACE.PUBLISH) readonly redisPub: Redis,
     readonly wsGamesState: WsGamesState,
     readonly wsLoadFileActions: WsLoadFileActions,
     protected readonly tokenService: TokenService,
-    private readonly clientActions: ClientActions,
-    private readonly gameActions: GameActions,
-    private readonly serverActions: ServerActions,
-    private readonly gameSessions: GameSessionsClass,
+    readonly handleClient: HandleClient,
+    readonly gameActions: HandleGame,
+    readonly serverActions: HandleServer,
+    readonly gameSessions: GameSessionsClass,
+
+    readonly emitClient: EmitClient,
+    readonly emitServer: EmitServer,
+    readonly emitGame: EmitGame,
   ) {
     super(wsGamesState, wsLoadFileActions);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_GAME);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_SERVER);
     this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_CLIENT);
 
-    this.redisSub.on('message', (channel: REDIS_ACTION, message) => {
-      const { event, data } = JSON.parse(message) as {
-        event: ActionTypes;
-        data: IWsData<any, ToType>;
-      };
-
-      if (channel === REDIS_ACTION.PROPAGATE_CLIENT) {
-        if (!data?.to) {
-          console.error('to - required parameter', message);
-          return;
-        }
-        //check existing receiver target on this server (gameId, userId)
-        //right now you can set only one receiver
-
-        const checkUsers = this.wsGamesState.checkExistingUser.bind(this)(data.to);
-
-        if (!checkUsers) {
-          return;
-        }
-
-        try {
-          if (!this.clientActions[event]) {
-            throw Error(`Action name = ${event} does not exist. Message: ${message}`);
-          }
-
-          this.clientActions[event](this, data);
-          return;
-        } catch (error) {
-          this.sendErrorToClient(event, {
-            payload: error,
-            uuid: message.uuid,
-            to: data.to,
-          });
-        }
-      } else if (channel === REDIS_ACTION.PROPAGATE_GAME) {
-        if (!data?.to.gameId) {
-          console.error('to.gameId -required parameter');
-          return;
-        }
-        //skip, if unnecessary node instance
-        if (!this.gameSessions[data.to.gameId]) {
-          return;
-        }
-
-        try {
-          if (!this.gameActions[event]) {
-            throw Error(`Action name = ${event} does not exist. Message: ${message}`);
-          }
-
-          this.gameActions[event](this, data);
-        } catch (error) {
-          this.sendErrorToClient(event, {
-            payload: error,
-            uuid: message.uuid,
-            to: data.to,
-          });
-        }
-      } else if (channel === REDIS_ACTION.PROPAGATE_SERVER) {
-        if (!data?.to.gameId) {
-          console.error('to.gameId - required parameter');
-          return;
-        }
-        try {
-          if (!this.serverActions[event]) {
-            throw Error(`Action name = ${event} does not exist. Message: ${message}`);
-          }
-
-          this.serverActions[event](this, data);
-        } catch (error) {
-          if (isEmpty(data.to)) {
-            return;
-          }
-
-          this.sendErrorToClient(event, {
-            payload: error,
-            uuid: message.uuid,
-            to: data.to,
-          });
-        }
-      }
-    });
+    redisSubHandleActions(this);
 
     this.redisSub.on('error', (err) => {
       console.log('redisSub ERROR', err);
     });
-  }
-
-  propagateServerEvent<T extends IWsData<any, ToType>>(event: ACTIONS, data: T) {
-    this.redisPub.publish(REDIS_ACTION.PROPAGATE_SERVER, JSON.stringify({ event, data }));
-  }
-
-  propagateGameEvent<T extends IWsData<any>>(event: ACTIONS, data: T) {
-    this.redisPub.publish(REDIS_ACTION.PROPAGATE_GAME, JSON.stringify({ event, data }));
-  }
-
-  propagateClientEvent<T extends IWsData<any, ToType>>(event: ACTIONS, data: T) {
-    this.redisPub.publish(REDIS_ACTION.PROPAGATE_CLIENT, JSON.stringify({ event, data }));
-  }
-
-  propagateClientError<T extends IWsData<any, ToType> & { event: ActionTypes }>(
-    event: ACTIONS.ERROR,
-    data: T,
-  ) {
-    this.redisPub.publish(REDIS_ACTION.PROPAGATE_CLIENT, JSON.stringify({ event, data }));
   }
 
   // @WsRouterDecorators(GAME_ACTIONS.TEST, [])
@@ -206,12 +116,14 @@ export class WsController extends WsGateway {
         map: cloneDeep(maps.testMap),
       },
       gameId,
+      this.emitClient,
+      this.emitServer,
     );
 
     client.gameId = gameId;
     client.isGameHost = true;
 
-    this.propagateServerEvent<IServerAction[ACTIONS.CREATE_NEW_GAME]>(ACTIONS.CREATE_NEW_GAME, {
+    this.emitServer[ACTIONS.CREATE_NEW_GAME]({
       to: { gameId },
       payload: { userId },
     });
@@ -223,7 +135,10 @@ export class WsController extends WsGateway {
   }
 
   @WsRouterDecorators(ACTIONS.JOIN_TO_GAME)
-  joinToGame(client: ModifyWebSocket, message: IWsData<ISchema[ACTIONS.JOIN_TO_GAME]>) {
+  joinToGame(
+    client: ModifyWebSocket,
+    message: RequiredField<IWsData<ISchema[ACTIONS.JOIN_TO_GAME]>, 'uuid'>,
+  ) {
     const gameId = message.payload.gameId;
     const userId = client.userId;
 
@@ -251,13 +166,11 @@ export class WsController extends WsGateway {
       return;
     }
 
-    message.from = { userId };
-    message.to = { gameId };
-
-    this.propagateGameEvent<IGameAction[ACTIONS.JOIN_TO_GAME]>(
-      ACTIONS.JOIN_TO_GAME,
-      message as IGameAction[ACTIONS.JOIN_TO_GAME],
-    );
+    this.emitGame[ACTIONS.JOIN_TO_GAME]({
+      ...message,
+      from: { userId },
+      to: { gameId },
+    });
   }
 
   @WsRouterDecorators(ACTIONS.START_GAME)
@@ -271,11 +184,10 @@ export class WsController extends WsGateway {
     const gameId = client.gameId;
     const game = this.gameSessions[gameId];
 
-    game.startGame(this.propagateClientEvent.bind(this), this.propagateServerEvent.bind(this));
-    this.propagateServerEvent<IServerAction[ACTIONS.START_GAME]>(ACTIONS.START_GAME, {
-      to: { gameId },
-    });
-    this.propagateClientEvent<IClientAction[ACTIONS.START_GAME]>(ACTIONS.START_GAME, {
+    game.startGame();
+
+    this.emitServer[ACTIONS.START_GAME]({ to: { gameId } });
+    this.emitClient[ACTIONS.START_GAME]({
       uuid: message.uuid,
       payload: game.getMap(),
       to: { gameId },
@@ -295,7 +207,7 @@ export class WsController extends WsGateway {
   @WsRouterDecorators(ACTIONS.PAUSE_GAME)
   pauseGame(client: ModifyWebSocket, message: IWsData<ISchema[ACTIONS.PAUSE_GAME]>) {
     const pause = message.payload.pause;
-    this.propagateGameEvent<IGameAction[ACTIONS.PAUSE_GAME]>(ACTIONS.PAUSE_GAME, {
+    this.emitGame[ACTIONS.PAUSE_GAME]({
       to: { gameId: client.gameId },
       uuid: message.uuid,
       payload: { pause },
@@ -328,17 +240,14 @@ export class WsController extends WsGateway {
     message.to = { gameId };
     message.from = { userId };
 
-    this.propagateGameEvent<IGameAction[ACTIONS.TANK_MOVEMENT]>(
-      ACTIONS.TANK_MOVEMENT,
-      message as IGameAction[ACTIONS.TANK_MOVEMENT],
-    );
+    this.emitGame[ACTIONS.TANK_MOVEMENT](message as IHandleGame[ACTIONS.TANK_MOVEMENT]);
   }
 
   @WsRouterDecorators(ACTIONS.TANK_SHOT)
   tankShot(client: ModifyWebSocket) {
     const { userId, gameId } = client;
 
-    this.propagateGameEvent<IGameAction[ACTIONS.TANK_SHOT]>(ACTIONS.TANK_SHOT, {
+    this.emitGame[ACTIONS.TANK_SHOT]({
       to: { gameId },
       from: { userId },
     });
@@ -348,7 +257,7 @@ export class WsController extends WsGateway {
   getSnapshot(client: ModifyWebSocket, message: IWsData) {
     const { userId, gameId } = client;
 
-    this.propagateGameEvent<IGameAction[ACTIONS.GET_GAME_SNAPSHOT]>(ACTIONS.GET_GAME_SNAPSHOT, {
+    this.emitGame[ACTIONS.GET_GAME_SNAPSHOT]({
       to: { gameId },
       from: { userId },
       uuid: message.uuid,

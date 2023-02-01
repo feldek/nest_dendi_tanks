@@ -4,9 +4,8 @@ import { DELTA_T } from '../constants';
 import { MissilesClass } from './missiles/missiles.class';
 import { IMapClass, MapClass } from './map/map.class';
 import { ACTIONS } from 'src/interfaces/ws';
-import { IClientAction } from 'src/ws/actions/client';
-import { WsController } from '../ws/ws.controller';
-import { IServerAction } from 'src/ws/actions/server';
+import { EmitServer } from 'src/ws/actions/server/emitter';
+import { EmitClient } from 'src/ws/actions/client/emitter';
 
 //where key - userId
 export type GameTanksConstructor = ITankClass[];
@@ -21,10 +20,14 @@ export class GameClass {
   tanks: TGameTanks;
   missiles: MissilesClass[];
   gameStarted: boolean = false;
-  propagateClientEvent: InstanceType<typeof WsController>['propagateClientEvent'] | null = null;
-  propagateServerEvent: InstanceType<typeof WsController>['propagateServerEvent'] | null = null;
 
-  constructor(tanks: ITankClass[], map: MapClass, readonly gameId: number) {
+  constructor(
+    tanks: ITankClass[],
+    map: MapClass,
+    readonly gameId: number,
+    readonly emitClient: EmitClient,
+    readonly emitServer: EmitServer,
+  ) {
     const tankInstances: TGameTanks = {};
     tanks.forEach((tank) => {
       tankInstances[tank.userId] = new TankClass(tank, this.checkEndGame.bind(this));
@@ -88,7 +91,7 @@ export class GameClass {
       return !hitToLandscape;
     });
 
-    this.propagateClientEvent<IClientAction[ACTIONS.GAME_SNAPSHOT]>(ACTIONS.GAME_SNAPSHOT, {
+    this.emitClient[ACTIONS.GAME_SNAPSHOT]({
       to: { gameId: this.gameId },
       payload: this.getGameSnapshot(),
     });
@@ -132,7 +135,7 @@ export class GameClass {
 
       this.endGame();
 
-      this.propagateClientEvent<IClientAction[ACTIONS.END_GAME]>(ACTIONS.END_GAME, {
+      this.emitClient[ACTIONS.END_GAME]({
         to: { gameId: this.gameId },
         payload: {
           message: `Team ${teamWin} win`,
@@ -140,18 +143,13 @@ export class GameClass {
         },
       });
 
-      this.propagateServerEvent<IServerAction[ACTIONS.END_GAME]>(ACTIONS.END_GAME, {
+      this.emitServer[ACTIONS.END_GAME]({
         to: { gameId: this.gameId },
       });
     }
   }
 
-  startGame(
-    propagateClientEvent: typeof this.propagateClientEvent,
-    propagateServerEvent: typeof this.propagateServerEvent,
-  ) {
-    this.propagateClientEvent = propagateClientEvent;
-    this.propagateServerEvent = propagateServerEvent;
+  startGame() {
     this.gameState.start();
     this.gameStarted = true;
   }

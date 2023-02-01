@@ -37,29 +37,6 @@ export class AuthService {
     return token;
   }
 
-  // generateToken(params: { userId: number; userRoles: ROLES[] }, jwtOptions?: JwtSignOptions) {
-  //   return {
-  //     access_token: this.jwtService.sign(params, {
-  //       secret: process.env.ACCESS_PRIVATE_KEY,
-  //       ...jwtOptions,
-  //     }),
-  //   };
-  // }
-
-  // decodeToken<T extends object = any>(token: string, jwtOptions?: JwtVerifyOptions): T {
-  //   try {
-  //     return this.jwtService.verify<T>(token, {
-  //       secret: process.env.ACCESS_PRIVATE_KEY,
-  //       ...jwtOptions,
-  //     });
-  //   } catch (error) {
-  //     if (error instanceof Error) {
-  //       throw new HttpException(error.message, 401);
-  //     }
-  //     throw error;
-  //   }
-  // }
-
   private async validateUser(userDto: CreateUserDto, transaction: Transaction) {
     const user = await this.userService.getUserByEmail(userDto.email, transaction);
 
@@ -72,9 +49,5 @@ export class AuthService {
       return user;
     }
     throw new UnauthorizedException({ message: 'Wrong email or password' });
-  }
-
-  async createHash(target: string) {
-    return await bcrypt.hash(target, 6);
   }
 }

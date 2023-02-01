@@ -1,6 +1,6 @@
 import { applyDecorators, UseInterceptors, UsePipes } from '@nestjs/common';
 import { ActionTypes } from 'src/interfaces/ws';
-import { joiSchema } from 'src/ws/schema/intex';
+import { joiSchema } from 'src/ws/controller/schema';
 import { WsErrorInterceptor } from './ws.interceptor';
 import { SubscribeMessage } from '@nestjs/websockets';
 import { JoiValidationPipe } from './ws-joi.pipe';
