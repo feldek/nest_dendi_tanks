@@ -1,9 +1,8 @@
 import { EmitServer } from './../actions/server/emitter';
 import { GameSessionsClass } from '../../game/game-sessions.class';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
-import { MessageBody, SubscribeMessage } from '@nestjs/websockets';
 import { ROLES } from 'src/constants';
-import { REDIS_ACTION, REDIS_NAMESPACE } from 'src/constants/redis.constants';
+import { REDIS_NAMESPACE } from 'src/constants/redis.constants';
 import { ActionTypes, IWsData, ACTIONS, ModifyWebSocket, ToType, ISchema } from 'src/interfaces/ws';
 import { WsRouterDecorators } from 'src/middlewares';
 import { WsGateway } from 'src/ws/gateway/ws.gateway';
@@ -12,11 +11,10 @@ import Redis from 'ioredis';
 import { WsGamesState } from '../gateway/ws.games-state';
 import { HandleClient } from '../actions/client/handler';
 import { HandleGame, IHandleGame } from '../actions/game/handler';
-import { HandleServer, IHandleServer } from '../actions/server/handler';
+import { HandleServer } from '../actions/server/handler';
 import { WsLoadFileActions } from '../actions/load-file-test/handler';
 import { TokenService } from 'src/utils/global-modules/token.service';
 import { cloneDeep } from 'lodash';
-import { redisSubHandleActions } from '../gateway/ws.redis-sub-handle-actions';
 import { EmitClient } from '../actions/client/emitter';
 import { EmitGame } from '../actions/game/emitter';
 import { RequiredField } from 'src/interfaces/common';
@@ -24,51 +22,32 @@ import { RequiredField } from 'src/interfaces/common';
 export class WsController extends WsGateway {
   constructor(
     @InjectRedis(REDIS_NAMESPACE.SUBSCRIBE) readonly redisSub: Redis,
-    @InjectRedis(REDIS_NAMESPACE.PUBLISH) readonly redisPub: Redis,
     readonly wsGamesState: WsGamesState,
     readonly wsLoadFileActions: WsLoadFileActions,
     protected readonly tokenService: TokenService,
-    readonly handleClient: HandleClient,
-    readonly gameActions: HandleGame,
-    readonly serverActions: HandleServer,
     readonly gameSessions: GameSessionsClass,
-
+    readonly handleClient: HandleClient,
+    readonly handleGame: HandleGame,
+    readonly handleServer: HandleServer,
     readonly emitClient: EmitClient,
     readonly emitServer: EmitServer,
     readonly emitGame: EmitGame,
   ) {
-    super(wsGamesState, wsLoadFileActions);
-    this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_GAME);
-    this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_SERVER);
-    this.redisSub.subscribe(REDIS_ACTION.PROPAGATE_CLIENT);
-
-    redisSubHandleActions(this);
-
-    this.redisSub.on('error', (err) => {
-      console.log('redisSub ERROR', err);
-    });
+    super(
+      wsGamesState,
+      wsLoadFileActions,
+      redisSub,
+      gameSessions,
+      handleClient,
+      handleGame,
+      handleServer,
+    );
   }
 
-  // @WsRouterDecorators(GAME_ACTIONS.TEST, [])
-  @SubscribeMessage(ACTIONS.TEST)
-  handleMessage(client: ModifyWebSocket, @MessageBody() message: IWsData<ISchema[ACTIONS.TEST]>) {
-    // const fs = require('fs');
-    // console.log('controller');
-    // let data = "This is a file containing a collection of books.";
-    //@ts-ignore
-    // console.log(message);
-    // fs.writeFile('books.jpg', message.payload, (err) => {
-    //   if (err) console.log(err);
-    //   else {
-    //     console.log('File written successfully\n');
-    //     console.log('The written has the following contents:');
-    //     // console.log(fs.readFileSync("books.txt", "utf8"));
-    //   }
-    // });
-    // console.log(message);
-    // this.wsGamesState.addNewGame({ gameId: 4, started: false, userIds: [5] });
-    // this.wsGamesState.joinUserToGame({ gameId: 4, userId: 10 });
-  }
+  // @SubscribeMessage(ACTIONS.TEST)
+  // handleMessage(client: ModifyWebSocket, @MessageBody() message: IWsData<ISchema[ACTIONS.TEST]>) {
+  //   console.log(message);
+  // }
 
   @WsRouterDecorators(ACTIONS.AUTHENTICATED, [])
   async authenticated(client: ModifyWebSocket, message: IWsData<ISchema[ACTIONS.AUTHENTICATED]>) {
