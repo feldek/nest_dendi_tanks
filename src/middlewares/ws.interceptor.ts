@@ -1,8 +1,9 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import { catchError, Observable, throwError } from 'rxjs';
-import { ActionTypes, ModifyWebSocket, ACTIONS, IWsData } from 'src/interfaces/ws';
+import { ACTIONS } from 'src/constants/actions.constants';
+import { ModifyWebSocket, IWsData } from 'src/interfaces/ws';
 
-export type WsErrorType<T = {}> = { event: ActionTypes } & IWsData<
+export type WsErrorType<T = {}> = { event: ACTIONS } & IWsData<
   { message: string; status?: number } & T
 >;
 
@@ -16,7 +17,7 @@ export class WsErrorInterceptor implements NestInterceptor {
           const event = Reflect.getMetadata(
             'message',
             (context.switchToWs() as any).handler,
-          ) as ActionTypes;
+          ) as ACTIONS;
           const client: ModifyWebSocket = context.switchToWs().getClient();
           const payload = context.switchToWs().getData();
 

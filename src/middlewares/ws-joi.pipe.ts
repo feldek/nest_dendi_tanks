@@ -7,7 +7,6 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { ObjectSchema } from 'joi';
-import { IWsData } from 'src/interfaces/ws';
 
 @Injectable()
 export class JoiValidationPipe implements PipeTransform {

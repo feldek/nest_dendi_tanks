@@ -4,6 +4,7 @@ import { WebSocket } from 'ws';
 import { ROLES } from 'src/constants';
 import { ITankClass, TTankControl } from 'src/game/tank/tank.class';
 import { TGameId } from 'src/game/game-sessions.class';
+import { ACTIONS } from 'src/constants/actions.constants';
 
 interface IClientMetadata {
   userId: number | null;
@@ -14,13 +15,12 @@ interface IClientMetadata {
 interface IUserRoles {
   userRoles: ROLES[];
 }
-export type ToTypeKeys = 'userId' | 'groups' | 'gameId' | 'broadcast' | 'userIds'
+export type ToTypeKeys = 'userId' | 'groups' | 'gameId' | 'broadcast' | 'userIds';
 export type ToType = RequireOnlyOne<
   //broadcast - send all users
   IClientMetadata & { broadcast: boolean } & { userIds: number[] },
   'userId' | 'groups' | 'gameId' | 'broadcast' | 'userIds'
 >;
-export type ActionTypes = ACTIONS;
 
 type PayloadType = { [key: string | number]: any };
 
@@ -58,7 +58,7 @@ export type IRequiredToFrom<
   : RequiredField<IWsData<void, T, F>, 'to' | 'from'>;
 
 export interface IWsMessage<T> {
-  event: ActionTypes;
+  event: ACTIONS;
   data: IWsData<T>;
 }
 
@@ -66,30 +66,6 @@ export interface ModifyWebSocket extends WebSocket, IClientMetadata, IUserRoles 
   isGameHost: boolean;
 
   sendError: (data: WsErrorType) => void;
-}
-
-export const enum ACTIONS {
-  TEST = 'TEST',
-  ERROR = 'ERROR',
-  CONNECTION = 'CONNECTION',
-  SEND_MSG = 'SEND_MSG',
-  CREATE_NEW_GAME = 'CREATE_NEW_GAME',
-  START_GAME = 'START_GAME',
-  PAUSE_GAME = 'PAUSE_GAME',
-  JOIN_TO_GAME = 'JOIN_TO_GAME',
-  FORCE_END_GAME = 'FORCE_END_GAME',
-  GET_NOT_STARTED_GAMES = 'GET_NOT_STARTED_GAMES',
-  TANK_MOVEMENT = 'TANK_MOVEMENT',
-  TANK_SHOT = 'TANK_SHOT',
-  END_GAME = 'END_GAME',
-
-  AUTHENTICATED = 'AUTHENTICATED',
-  LOGOUT = 'LOGOUT',
-  USER_JOIN_TO_GAME = 'USER_JOIN_TO_GAME',
-  GAME_SNAPSHOT = 'GAME_SNAPSHOT',
-  GET_GAME_SNAPSHOT = 'GET_GAME_SNAPSHOT',
-  LEAVE_GAME = 'LEAVE_GAME',
-  LOAD_IMAGE_TEST = 'LOAD_IMAGE_TEST',
 }
 
 export interface ISchema {

@@ -1,3 +1,5 @@
+import { defaultWeapon } from './../../constants/game.constants';
+
 export interface IWeaponClass {
   damage?: number;
   speed?: number;
@@ -10,8 +12,8 @@ export class WeaponClass {
   public rateOfFire: number;
 
   constructor(params?: IWeaponClass) {
-    this.damage = params?.damage ?? 1;
-    this.speed = params?.speed ?? 90;
-    this.rateOfFire = params?.rateOfFire ?? 1000;
+    this.damage = params?.damage ?? defaultWeapon.damage;
+    this.speed = params?.speed ?? defaultWeapon.speed;
+    this.rateOfFire = params?.rateOfFire ?? defaultWeapon.rateOfFire;
   }
 }

@@ -2,9 +2,10 @@ import { RequiredField } from 'src/interfaces/common';
 import { Injectable } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { REDIS_ACTION, REDIS_NAMESPACE } from 'src/constants/redis.constants';
-import { ACTIONS, ISchema, IWsData, ToType } from 'src/interfaces/ws';
+import { ISchema, IWsData, ToType } from 'src/interfaces/ws';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { TTankControl } from 'src/game/tank/tank.class';
+import { ACTIONS } from 'src/constants/actions.constants';
 
 interface IEmitGame {
   [ACTIONS.JOIN_TO_GAME]: RequiredField<

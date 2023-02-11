@@ -3,9 +3,9 @@ import { ITankClass, TankClass } from './tank/tank.class';
 import { DELTA_T } from '../constants';
 import { MissilesClass } from './missiles/missiles.class';
 import { IMapClass, MapClass } from './map/map.class';
-import { ACTIONS } from 'src/interfaces/ws';
 import { EmitServer } from 'src/ws/actions/server/emitter';
 import { EmitClient } from 'src/ws/actions/client/emitter';
+import { ACTIONS } from 'src/constants/actions.constants';
 
 //where key - userId
 export type GameTanksConstructor = ITankClass[];

@@ -1,11 +1,12 @@
 import { MapClass } from 'src/game/map/map.class';
 import { Injectable } from '@nestjs/common';
 import { RequiredField } from 'src/interfaces/common';
-import { ToType, IRequiredTo, ISchema, ACTIONS } from 'src/interfaces/ws';
+import { ToType, IRequiredTo, ISchema } from 'src/interfaces/ws';
 import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { directionType } from 'src/game/common/dynamicObj.class';
 import { MissilesClass } from 'src/game/missiles/missiles.class';
 import { WsController } from 'src/ws/controller/controller';
+import { ACTIONS } from 'src/constants/actions.constants';
 
 export interface IHandleClient {
   [ACTIONS.ERROR]: RequiredField<WsErrorType, 'to' | 'payload'>;

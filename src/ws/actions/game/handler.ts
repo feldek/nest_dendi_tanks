@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ACTIONS, ISchema, IRequiredTo, IRequiredToFrom } from 'src/interfaces/ws';
+import { ISchema, IRequiredTo, IRequiredToFrom } from 'src/interfaces/ws';
 import { WsController } from '../../controller/controller';
 import { TTankControl } from '../../../game/tank/tank.class';
 import { GameSessionsClass } from 'src/game/game-sessions.class';
+import { ACTIONS } from 'src/constants/actions.constants';
 
 export interface IHandleGame {
   [ACTIONS.JOIN_TO_GAME]: IRequiredToFrom<ISchema[ACTIONS.JOIN_TO_GAME]>;

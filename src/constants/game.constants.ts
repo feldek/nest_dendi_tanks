@@ -1,3 +1,6 @@
+import { tankActionType } from 'src/game/tank/tank.class';
+import { WeaponClass } from 'src/game/tank/weapon.class';
+
 export const enum RADIUS {
   TANK = 10,
 
@@ -8,3 +11,15 @@ export const enum RADIUS {
   MISSILES_TANK = RADIUS.TANK + RADIUS.MISSILES,
   LANDSCAPE_TANK = RADIUS.TANK + RADIUS.BLOCK,
 }
+export const defaultWeapon = {
+  damage: 1,
+  speed: 90,
+  rateOfFire: 1000,
+};
+
+export const defaultTank = {
+  state: 'stay' as tankActionType,
+  armor: 4,
+  weapon: new WeaponClass(),
+};
+

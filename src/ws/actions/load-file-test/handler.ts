@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { IWsData, ModifyWebSocket, ACTIONS } from 'src/interfaces/ws';
+import { IWsData, ModifyWebSocket } from 'src/interfaces/ws';
 import { writeFile } from 'fs';
+import { ACTIONS } from 'src/constants/actions.constants';
 
 export interface IWsLoadFileActions {
   [ACTIONS.LOAD_IMAGE_TEST]: IWsData<{ buffer: Buffer; extension: string; name: string }>;
