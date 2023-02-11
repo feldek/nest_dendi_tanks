@@ -2,7 +2,7 @@ import { DELTA_T } from '../../constants';
 import { RequireAtLeastOne } from 'src/interfaces/common';
 import { DynamicObjClass, IDynamicObj } from '../common/dynamicObj.class';
 import { WeaponClass } from './weapon.class';
-import { RADIUS } from 'src/constants/game.constants';
+import { RADIUS, defaultTank } from 'src/constants/game.constants';
 import { MissilesClass } from '../missiles/missiles.class';
 
 export type tankActionType = 'stay' | 'move' | 'hold';
@@ -31,11 +31,12 @@ export class TankClass extends DynamicObjClass {
   constructor(tank: ITankClass, callbackCheckEndGame: () => void, weapon?: WeaponClass) {
     const { x, y, speed, direction } = tank;
 
+    const { armor, state } = defaultTank;
     super({ x, y, speed, direction });
-    this.state = tank.state ?? 'stay';
-    this.armor = tank?.armor ?? 4;
-    this.currentArmor = tank.armor ?? 4;
-    this.weapon = weapon ?? new WeaponClass();
+    this.state = tank.state ?? state;
+    this.armor = tank?.armor ?? armor;
+    this.currentArmor = tank.armor ?? armor;
+    this.weapon = weapon ?? defaultTank.weapon;
     this.userId = tank?.userId;
     this.teamId = tank.teamId;
 

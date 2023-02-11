@@ -18,7 +18,10 @@ import { GlobalModule } from './utils/global-modules/global.module';
   imports: [
     GlobalModule,
     WSModule,
-    ConfigModule.forRoot({ envFilePath: `.env` }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: `.env`,
+    }),
     SequelizeModule.forRoot({
       dialect: 'postgres',
       host: process.env.DB_HOST,
@@ -28,25 +31,19 @@ import { GlobalModule } from './utils/global-modules/global.module';
       database: process.env.DB_DATABASE,
       schema: process.env.DB_SCHEMA,
       models: [UserEntity, RoleEntity, UserRolesEntity],
-      pool: {
-        max: 20,
-        min: 0,
-        acquire: 60000,
-        idle: 10000,
-      },
       // logging: true,
     }),
     RedisModule.forRoot({
       config: [
         {
-          host: '180.28.1.4',
-          port: 6379,
+          host: process.env.REDIS_HOST,
+          port: +process.env.REDIS_PORT,
           namespace: REDIS_NAMESPACE.PUBLISH,
         },
 
         {
-          host: '180.28.1.4',
-          port: 6379,
+          host: process.env.REDIS_HOST,
+          port: +process.env.REDIS_PORT,
           namespace: REDIS_NAMESPACE.SUBSCRIBE,
         },
       ],

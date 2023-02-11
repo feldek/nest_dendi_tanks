@@ -1,4 +1,6 @@
-import { MapClass } from './map.class';
+import { MapClass } from '../game/map/map.class';
+
+export const defaultMapSize = { x: 300, y: 300 };
 
 export const maps = {
   testMap: new MapClass({

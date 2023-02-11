@@ -10,7 +10,8 @@ import { Reflector } from '@nestjs/core';
 import { intersection, isEmpty } from 'lodash';
 import { Observable } from 'rxjs';
 import { ROLES } from 'src/constants';
-import { ActionTypes, ModifyWebSocket } from 'src/interfaces/ws';
+import { ACTIONS } from 'src/constants/actions.constants';
+import { ModifyWebSocket } from 'src/interfaces/ws';
 
 @Injectable()
 class WsRole implements CanActivate {
@@ -26,7 +27,7 @@ class WsRole implements CanActivate {
       const event = Reflect.getMetadata(
         'message',
         (context.switchToWs() as any).handler,
-      ) as ActionTypes;
+      ) as ACTIONS;
 
       const payload = context.switchToWs().getData();
 

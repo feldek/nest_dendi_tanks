@@ -1,3 +1,4 @@
+import { defaultMapSize } from './../../constants/maps.constants';
 import { RADIUS } from 'src/constants/game.constants';
 import { MissilesClass } from '../missiles/missiles.class';
 
@@ -15,8 +16,8 @@ export class MapClass implements IMapClass {
 
   constructor(params: IMapClass) {
     this.size = {
-      x: params?.size?.x ?? 300,
-      y: params?.size?.y ?? 300,
+      x: params?.size?.x ?? defaultMapSize.x,
+      y: params?.size?.y ?? defaultMapSize.y,
     };
 
     this.checkBlockIntersections(params.blocks);

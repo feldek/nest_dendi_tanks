@@ -3,10 +3,11 @@ import { RequiredField } from 'src/interfaces/common';
 import { Injectable } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { REDIS_ACTION, REDIS_NAMESPACE } from 'src/constants/redis.constants';
-import { ACTIONS, ActionTypes, ISchema, IWsData, ToType } from 'src/interfaces/ws';
+import { ISchema, IWsData, ToType } from 'src/interfaces/ws';
 import { MapClass } from 'src/game/map/map.class';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { directionType } from 'src/game/common/dynamicObj.class';
+import { ACTIONS } from 'src/constants/actions.constants';
 
 type ISnapshot = {
   tanks: {
@@ -45,7 +46,7 @@ export class EmitClient {
     this.redisPub.publish(REDIS_ACTION.PROPAGATE_CLIENT, JSON.stringify({ event, data }));
   }
 
-  propagateClientError<T extends IWsData<any, ToType> & { event: ActionTypes }>(
+  propagateClientError<T extends IWsData<any, ToType> & { event: ACTIONS }>(
     event: ACTIONS.ERROR,
     data: T,
   ) {
