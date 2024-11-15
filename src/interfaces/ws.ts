@@ -4,7 +4,7 @@ import { WebSocket } from 'ws';
 import { ROLES } from 'src/constants';
 import { ITankClass, TTankControl } from 'src/game/tank/tank.class';
 import { TGameId } from 'src/game/game-sessions.class';
-import { ACTIONS } from 'src/constants/actions.constants';
+import { ACTIONS } from '../constants/actions.constants';
 
 interface IClientMetadata {
   userId: number | null;
@@ -15,6 +15,7 @@ interface IClientMetadata {
 interface IUserRoles {
   userRoles: ROLES[];
 }
+
 export type ToTypeKeys = 'userId' | 'groups' | 'gameId' | 'broadcast' | 'userIds';
 export type ToType = RequireOnlyOne<
   //broadcast - send all users

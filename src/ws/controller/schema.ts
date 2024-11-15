@@ -1,5 +1,6 @@
 import Joi from 'joi';
-import { ACTIONS, ISchema } from 'src/interfaces/ws';
+import { ISchema } from 'src/interfaces/ws';
+import { ACTIONS } from '../../constants/actions.constants';
 
 const defaultState = {
   tank: {

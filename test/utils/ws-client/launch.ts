@@ -1,6 +1,6 @@
 import { WsClient } from './ws-client';
 import { freezeTime } from '../common';
-import { ACTIONS } from 'src/interfaces/ws';
+import { ACTIONS } from '../../../src/constants/actions.constants';
 
 const userIds = [10, 20, 30];
 
