@@ -3,21 +3,14 @@ import { WsGamesState } from './ws.games-state';
 import { RequiredField } from 'src/interfaces/common';
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  WebSocketGateway,
-  WebSocketServer,
-  OnGatewayInit,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
 import { intersection, isEmpty } from 'lodash';
-import {
-  ACTIONS,
-  ActionTypes,
-  IWsData,
-  ModifyWebSocket,
-  ToType,
-  IRequiredTo,
-} from 'src/interfaces/ws';
+import { IRequiredTo, IWsData, ModifyWebSocket, ToType } from 'src/interfaces/ws';
 import { Server } from 'ws';
 import { WsErrorType } from 'src/middlewares/ws.interceptor';
 import { deserialize } from 'bson';
@@ -27,6 +20,7 @@ import { GameSessionsClass } from 'src/game/game-sessions.class';
 import { HandleClient } from '../actions/client/handler';
 import { HandleGame } from '../actions/game/handler';
 import { HandleServer } from '../actions/server/handler';
+import { ACTIONS } from '../../constants/actions.constants';
 
 @Injectable()
 @WebSocketGateway({
@@ -44,7 +38,6 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     readonly wsGamesState: WsGamesState,
     readonly wsLoadFileActions: WsLoadFileActions,
     readonly redisSub: Redis,
-
     readonly gameSessions: GameSessionsClass,
     readonly handleClient: HandleClient,
     readonly handleGame: HandleGame,
@@ -56,10 +49,118 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     this.redisHandleActions();
   }
 
+  //it's unnecessary but recommended
+  sendToClient<P>(event: ACTIONS, data: IRequiredTo<P, ToType>) {
+    const userTarget: ModifyWebSocket[] = this.getWsClients(data.to);
+
+    userTarget.forEach((user) => {
+      // @ts-ignore
+      user.send(JSON.stringify(this.generateResponse<P, ToType>(event, data)));
+    });
+  }
+
+  //nest expects an object to have the format { event: string, data: {...any} }
+
+  //TODO: { message: string } | unknown define how unknown, need { message: string } also
+  sendErrorToClient(event: ACTIONS, data: IRequiredTo<{ message: string } | unknown, ToType>) {
+    const { payload } = data;
+    const userTarget: ModifyWebSocket[] = this.getWsClients(data.to);
+    const message =
+      payload instanceof Error
+        ? { message: payload.message, name: payload.name }
+        : {
+            //@ts-ignore
+            message: payload.message || 'Unknown Error',
+          };
+
+    userTarget.forEach((user) => {
+      user.send(
+        JSON.stringify(
+          this.generateResponse<{ message: string; name?: string }, ToType>(ACTIONS.ERROR, {
+            ...data,
+            event,
+            payload: message,
+          }),
+        ),
+      );
+    });
+  }
+
+  generateResponse<P, T extends ToType>(event: ACTIONS, data: IWsData<P, T> & { event?: ACTIONS }) {
+    return { event, data };
+  }
+
+  getWsClients(data: ToType): ModifyWebSocket[] {
+    const listWsClients = Array.from(this.server.clients);
+    let findWsClients: ModifyWebSocket[] = [];
+
+    if (data.gameId) {
+      findWsClients = listWsClients.filter((client) => client.gameId === data.gameId);
+    } else if (data.userId) {
+      const client = listWsClients.find((client) => client.userId === data.userId);
+      findWsClients = client ? [client] : [];
+    } else if (data.userIds && Array.isArray(data.userIds)) {
+      findWsClients = listWsClients.filter((client) => data.userIds.includes(client.gameId));
+    } else if (data.broadcast) {
+      findWsClients = listWsClients;
+    } else if (data.groups && Array.isArray(data.groups)) {
+      findWsClients = listWsClients.filter((client) => intersection(data.groups, client.groups));
+    }
+
+    return findWsClients;
+  }
+
+  afterInit(server: Server) {
+    this.logger.log('Init');
+  }
+
+  handleDisconnect(client: ModifyWebSocket) {
+    const { userId, gameId } = client;
+    this.wsGamesState.deleteUserId(userId);
+
+    if (gameId) {
+      this.wsGamesState.deleteGameId({ gameId, userId });
+    }
+    this.logger.log(`Client disconnected: ${userId}`);
+  }
+
+  async handleConnection(client: ModifyWebSocket, ...args: any[]) {
+    client.isGameHost = false;
+
+    this.logger.log(`New client connected`);
+
+    //crutch for load buffer data
+    // this.listenBuffer(client);
+
+    client.sendError = (data) => {
+      const error: { event: ACTIONS.ERROR; data: RequiredField<WsErrorType, 'payload'> } = {
+        event: ACTIONS.ERROR,
+        data: {
+          event: data.event,
+          payload: {
+            message: data.payload.message || 'Unknown error',
+            status: data.payload.status || 500,
+          },
+          uuid: data?.uuid,
+        },
+      };
+
+      client.send(JSON.stringify(error));
+    };
+
+    // const message = JSON.stringify(
+    //   this.generateResponse(ACTIONS.CONNECTION, {
+    //     payload: { message: `Hello user ${clientId}` },
+    //     uuid: uuidv4(),
+    //   }),
+    // );
+    // client.send(message);
+  }
+
   private redisHandleActions() {
     this.redisSub.on('message', (channel: REDIS_ACTION, message) => {
       const { event, data } = JSON.parse(message) as {
-        event: ActionTypes;
+        event: ACTIONS;
         data: IWsData<any, ToType>;
       };
 
@@ -142,116 +243,6 @@ export class WsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayD
     this.redisSub.on('error', (err) => {
       console.log('redisSub ERROR', err);
     });
-  }
-
-  //nest expects an object to have the format { event: string, data: {...any} }
-  //it's unnecessary but recommended
-  sendToClient<P>(event: ActionTypes, data: IRequiredTo<P, ToType>) {
-    const userTarget: ModifyWebSocket[] = this.getWsClients(data.to);
-
-    userTarget.forEach((user) => {
-      // @ts-ignore
-      user.send(JSON.stringify(this.generateResponse<P, ToType>(event, data)));
-    });
-  }
-
-  //TODO: { message: string } | unknown define how unknown, need { message: string } also
-  sendErrorToClient(event: ActionTypes, data: IRequiredTo<{ message: string } | unknown, ToType>) {
-    const { payload } = data;
-    const userTarget: ModifyWebSocket[] = this.getWsClients(data.to);
-    const message =
-      payload instanceof Error
-        ? { message: payload.message, name: payload.name }
-        : {
-            //@ts-ignore
-            message: payload.message || 'Unknown Error',
-          };
-
-    userTarget.forEach((user) => {
-      user.send(
-        JSON.stringify(
-          this.generateResponse<{ message: string; name?: string }, ToType>(ACTIONS.ERROR, {
-            ...data,
-            event,
-            payload: message,
-          }),
-        ),
-      );
-    });
-  }
-
-  generateResponse<P, T extends ToType>(
-    event: ActionTypes,
-    data: IWsData<P, T> & { event?: ACTIONS },
-  ) {
-    return { event, data };
-  }
-
-  getWsClients(data: ToType): ModifyWebSocket[] {
-    const listWsClients = Array.from(this.server.clients);
-    let findWsClients: ModifyWebSocket[] = [];
-
-    if (data.gameId) {
-      findWsClients = listWsClients.filter((client) => client.gameId === data.gameId);
-    } else if (data.userId) {
-      const client = listWsClients.find((client) => client.userId === data.userId);
-      findWsClients = client ? [client] : [];
-    } else if (data.userIds && Array.isArray(data.userIds)) {
-      findWsClients = listWsClients.filter((client) => data.userIds.includes(client.gameId));
-    } else if (data.broadcast) {
-      findWsClients = listWsClients;
-    } else if (data.groups && Array.isArray(data.groups)) {
-      findWsClients = listWsClients.filter((client) => intersection(data.groups, client.groups));
-    }
-
-    return findWsClients;
-  }
-
-  afterInit(server: Server) {
-    this.logger.log('Init');
-  }
-
-  handleDisconnect(client: ModifyWebSocket) {
-    const { userId, gameId } = client;
-    this.wsGamesState.deleteUserId(userId);
-
-    if (gameId) {
-      this.wsGamesState.deleteGameId({ gameId, userId });
-    }
-    this.logger.log(`Client disconnected: ${userId}`);
-  }
-
-  async handleConnection(client: ModifyWebSocket, ...args: any[]) {
-    client.isGameHost = false;
-
-    this.logger.log(`New client connected`);
-
-    //crutch for load buffer data
-    // this.listenBuffer(client);
-
-    client.sendError = (data) => {
-      const error: { event: ACTIONS.ERROR; data: RequiredField<WsErrorType, 'payload'> } = {
-        event: ACTIONS.ERROR,
-        data: {
-          event: data.event,
-          payload: {
-            message: data.payload.message || 'Unknown error',
-            status: data.payload.status || 500,
-          },
-          uuid: data?.uuid,
-        },
-      };
-
-      client.send(JSON.stringify(error));
-    };
-
-    // const message = JSON.stringify(
-    //   this.generateResponse(ACTIONS.CONNECTION, {
-    //     payload: { message: `Hello user ${clientId}` },
-    //     uuid: uuidv4(),
-    //   }),
-    // );
-    // client.send(message);
   }
 
   //there is necessary for get binary data

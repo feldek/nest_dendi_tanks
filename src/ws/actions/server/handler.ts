@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ACTIONS, IRequiredTo } from 'src/interfaces/ws';
+import { IRequiredTo } from 'src/interfaces/ws';
 import { WsController } from 'src/ws/controller/controller';
+import { ACTIONS } from '../../../constants/actions.constants';
 
 export interface IHandleServer {
   [ACTIONS.CREATE_NEW_GAME]: IRequiredTo<{ userId: number }>;

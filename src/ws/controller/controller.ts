@@ -3,10 +3,8 @@ import { GameSessionsClass } from '../../game/game-sessions.class';
 import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { ROLES } from 'src/constants';
 import { REDIS_NAMESPACE } from 'src/constants/redis.constants';
-import { ActionTypes, IWsData, ACTIONS, ModifyWebSocket, ToType, ISchema } from 'src/interfaces/ws';
-import { WsRouterDecorators } from 'src/middlewares';
+import { ISchema, IWsData, ModifyWebSocket, ToType } from 'src/interfaces/ws';
 import { WsGateway } from 'src/ws/gateway/ws.gateway';
-import { maps } from '../../game/map/maps.constants';
 import Redis from 'ioredis';
 import { WsGamesState } from '../gateway/ws.games-state';
 import { HandleClient } from '../actions/client/handler';
@@ -18,6 +16,9 @@ import { cloneDeep } from 'lodash';
 import { EmitClient } from '../actions/client/emitter';
 import { EmitGame } from '../actions/game/emitter';
 import { RequiredField } from 'src/interfaces/common';
+import { ACTIONS } from '../../constants/actions.constants';
+import { maps } from '../../constants/maps.constants';
+import { WsRouterDecorators } from '../../middlewares/ws.index';
 
 export class WsController extends WsGateway {
   constructor(
@@ -84,7 +85,7 @@ export class WsController extends WsGateway {
     client: ModifyWebSocket,
     message: IWsData<ISchema[ACTIONS.CREATE_NEW_GAME]>,
   ): {
-    event: ActionTypes;
+    event: ACTIONS;
     data: IWsData<{ gameId: number }, ToType>;
   } {
     const userId = client.userId;
@@ -198,7 +199,7 @@ export class WsController extends WsGateway {
     _client: ModifyWebSocket,
     message: IWsData<ISchema[ACTIONS.FORCE_END_GAME]>,
   ): {
-    event: ActionTypes;
+    event: ACTIONS;
     data: IWsData<{ gameId: number }, ToType>;
   } {
     const gameId = message.payload.gameId;

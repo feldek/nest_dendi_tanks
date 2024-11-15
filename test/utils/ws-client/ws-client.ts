@@ -1,17 +1,18 @@
-require('dotenv').config();
-
+import { ACTIONS } from '../../../src/constants/actions.constants';
 import { MapClass } from './../../../src/game/map/map.class';
 import { v4 as uuidv4 } from 'uuid';
-import { ACTIONS, ActionTypes, IWsData } from 'src/interfaces/ws';
+import { IWsData } from 'src/interfaces/ws';
 import WebSocket from 'ws';
 import readline from 'readline';
-import { scatter, bg, fg } from 'ervy';
+import { bg, fg, scatter } from 'ervy';
 import { JwtService } from '@nestjs/jwt';
 import { ROLES } from 'src/constants';
 import ee from 'event-emitter';
 import hasListeners from 'event-emitter/has-listeners';
 import { serialize } from 'bson';
 import { IHandleClient } from 'src/ws/actions/client/handler';
+
+require('dotenv').config();
 
 const emitter = ee();
 
@@ -27,12 +28,12 @@ const bgColors = {
 };
 
 export class WsClient {
-  private tankState: 'stay' | 'move' | 'hold' = 'stay';
   map: { size: MapClass['size']; blocks: MapClass['blocks'] } = {
     blocks: [],
     size: { x: 300, y: 300 },
   };
   connection: WebSocket;
+  private tankState: 'stay' | 'move' | 'hold' = 'stay';
 
   constructor(userId, options: { port: number }, showConsoleData = false, readKeyboard = false) {
     const connection = new WebSocket(`ws://localhost:${options.port}`);
@@ -115,11 +116,11 @@ export class WsClient {
     connection.on('close', (status, msg) => {});
   }
 
-  public publish<T>(event: ActionTypes, message: IWsData<T | void>) {
+  public publish<T>(event: ACTIONS, message: IWsData<T | void>) {
     this.connection.send(JSON.stringify({ event, data: message }));
   }
 
-  sendWsPromise<T>(event: ActionTypes, message: IWsData<T | void>) {
+  sendWsPromise<T>(event: ACTIONS, message: IWsData<T | void>) {
     const serverExceedTimeout = 2;
     const uuid = message.uuid || uuidv4();
     message.uuid = uuid;
@@ -143,7 +144,7 @@ export class WsClient {
   }
 
   //there is possible send binary data
-  sendWsBinaryPromise<T>(event: ActionTypes, message: IWsData<T>) {
+  sendWsBinaryPromise<T>(event: ACTIONS, message: IWsData<T>) {
     const serverExceedTimeout = 2;
     const uuid = message.uuid || uuidv4();
     message.uuid = uuid;
